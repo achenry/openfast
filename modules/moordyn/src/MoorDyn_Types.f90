@@ -168,6 +168,7 @@ IMPLICIT NONE
     INTEGER(IntKi) , DIMENSION(:), ALLOCATABLE  :: ConnIdList      !< array of size NConnss listing the ID of each connect type connection (index of ConnectList) []
     INTEGER(IntKi) , DIMENSION(:), ALLOCATABLE  :: LineStateIndList      !< starting index of each line's states in state vector []
     REAL(ReKi) , DIMENSION(:), ALLOCATABLE  :: MDWrOutput      !< Data from time step to be written to a MoorDyn output file [-]
+    REAL(DbKi)  :: LastOutTime      !< Time of last writing to MD output files [-]
   END TYPE MD_MiscVarType
 ! =======================
 ! =========  MD_ParameterType  =======
@@ -185,6 +186,7 @@ IMPLICIT NONE
     REAL(ReKi)  :: cBot      !< bottom damping [[Pa-s/m]]
     REAL(ReKi)  :: dtM0      !< desired mooring model time step [[s]]
     REAL(ReKi)  :: dtCoupling      !< coupling time step that MoorDyn should expect [[s]]
+    REAL(ReKi)  :: dtOut      !< interval for writing output file lines [[s]]
     INTEGER(IntKi)  :: NumOuts      !< Number of parameters in the output list (number of outputs requested) [-]
     CHARACTER(1024)  :: RootName      !< RootName for writing output files [-]
     TYPE(MD_OutParmType) , DIMENSION(:), ALLOCATABLE  :: OutParam      !< Names and units (and other characteristics) of all requested output parameters [-]
@@ -3635,6 +3637,7 @@ IF (ALLOCATED(SrcMiscData%MDWrOutput)) THEN
   END IF
     DstMiscData%MDWrOutput = SrcMiscData%MDWrOutput
 ENDIF
+    DstMiscData%LastOutTime = SrcMiscData%LastOutTime
  END SUBROUTINE MD_CopyMisc
 
  SUBROUTINE MD_DestroyMisc( MiscData, ErrStat, ErrMsg )
@@ -3803,6 +3806,7 @@ ENDIF
     Int_BufSz   = Int_BufSz   + 2*1  ! MDWrOutput upper/lower bounds for each dimension
       Re_BufSz   = Re_BufSz   + SIZE(InData%MDWrOutput)  ! MDWrOutput
   END IF
+      Db_BufSz   = Db_BufSz   + 1  ! LastOutTime
   IF ( Re_BufSz  .GT. 0 ) THEN 
      ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
      IF (ErrStat2 /= 0) THEN 
@@ -4013,6 +4017,8 @@ ENDIF
         Re_Xferred = Re_Xferred + 1
       END DO
   END IF
+    DbKiBuf(Db_Xferred) = InData%LastOutTime
+    Db_Xferred = Db_Xferred + 1
  END SUBROUTINE MD_PackMisc
 
  SUBROUTINE MD_UnPackMisc( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
@@ -4282,6 +4288,8 @@ ENDIF
         Re_Xferred = Re_Xferred + 1
       END DO
   END IF
+    OutData%LastOutTime = DbKiBuf(Db_Xferred)
+    Db_Xferred = Db_Xferred + 1
  END SUBROUTINE MD_UnPackMisc
 
  SUBROUTINE MD_CopyParam( SrcParamData, DstParamData, CtrlCode, ErrStat, ErrMsg )
@@ -4312,6 +4320,7 @@ ENDIF
     DstParamData%cBot = SrcParamData%cBot
     DstParamData%dtM0 = SrcParamData%dtM0
     DstParamData%dtCoupling = SrcParamData%dtCoupling
+    DstParamData%dtOut = SrcParamData%dtOut
     DstParamData%NumOuts = SrcParamData%NumOuts
     DstParamData%RootName = SrcParamData%RootName
 IF (ALLOCATED(SrcParamData%OutParam)) THEN
@@ -4399,6 +4408,7 @@ ENDIF
       Re_BufSz   = Re_BufSz   + 1  ! cBot
       Re_BufSz   = Re_BufSz   + 1  ! dtM0
       Re_BufSz   = Re_BufSz   + 1  ! dtCoupling
+      Re_BufSz   = Re_BufSz   + 1  ! dtOut
       Int_BufSz  = Int_BufSz  + 1  ! NumOuts
       Int_BufSz  = Int_BufSz  + 1*LEN(InData%RootName)  ! RootName
   Int_BufSz   = Int_BufSz   + 1     ! OutParam allocated yes/no
@@ -4479,6 +4489,8 @@ ENDIF
     ReKiBuf(Re_Xferred) = InData%dtM0
     Re_Xferred = Re_Xferred + 1
     ReKiBuf(Re_Xferred) = InData%dtCoupling
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%dtOut
     Re_Xferred = Re_Xferred + 1
     IntKiBuf(Int_Xferred) = InData%NumOuts
     Int_Xferred = Int_Xferred + 1
@@ -4587,6 +4599,8 @@ ENDIF
     OutData%dtM0 = ReKiBuf(Re_Xferred)
     Re_Xferred = Re_Xferred + 1
     OutData%dtCoupling = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%dtOut = ReKiBuf(Re_Xferred)
     Re_Xferred = Re_Xferred + 1
     OutData%NumOuts = IntKiBuf(Int_Xferred)
     Int_Xferred = Int_Xferred + 1

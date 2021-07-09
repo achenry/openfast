@@ -138,6 +138,7 @@ typedef   ^       ^                    IntKi               FairIdList       {:} 
 typedef   ^       ^                    IntKi               ConnIdList       {:}  -  -   "array of size NConnss listing the ID of each connect type connection (index of ConnectList)"         ""
 typedef   ^       ^                    IntKi               LineStateIndList {:}  -  -   "starting index of each line's states in state vector"                 ""
 typedef   ^       ^                    ReKi                MDWrOutput       {:}  -  -   "Data from time step to be written to a MoorDyn output file"
+typedef   ^       ^                    ReKi                LastOutTime      -    -  -   "Time of last writing to MD output files"
 
 
 ## ============================== Parameters ============================================================================================================================================
@@ -154,6 +155,7 @@ typedef   ^       ^                    ReKi                kBot           -     
 typedef   ^       ^                    ReKi                cBot           -     -    -   "bottom damping"                  "[Pa-s/m]"
 typedef   ^       ^                    ReKi                dtM0           -     -    -   "desired mooring model time step"          "[s]"
 typedef   ^       ^                    ReKi                dtCoupling     -     -    -   "coupling time step that MoorDyn should expect"              "[s]"
+typedef   ^       ^                    ReKi                dtOut          -     -    -   "interval for writing output file lines"              "[s]"
 typedef   ^       ^                    IntKi               NumOuts        -     -    -   "Number of parameters in the output list (number of outputs requested)"    -
 typedef   ^       ^                    CHARACTER(1024)     RootName       -     -    -   "RootName for writing output files"          -
 typedef   ^       ^                    MD_OutParmType      OutParam       {:}   -    -   "Names and units (and other characteristics) of all requested output parameters"          -

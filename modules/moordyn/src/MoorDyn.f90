@@ -27,7 +27,7 @@ MODULE MoorDyn
 
    PRIVATE
 
-   TYPE(ProgDesc), PARAMETER            :: MD_ProgDesc = ProgDesc( 'MoorDyn', 'v1.01.02F', '8-Apr-2016' )
+   TYPE(ProgDesc), PARAMETER            :: MD_ProgDesc = ProgDesc( 'MoorDyn', 'v1.02.0 custom', '23-Jun-2021' )
 
 
    PUBLIC :: MD_Init
@@ -99,6 +99,7 @@ CONTAINS
       p%g        = InitInp%g
       p%WtrDpth  = InitInp%WtrDepth
       p%rhoW     = InitInp%rhoW
+      p%dtOut    = 0.0_DbKi
 
       p%RootName = TRIM(InitInp%RootName)//'.MD'  ! all files written from this module will have this root name
 
