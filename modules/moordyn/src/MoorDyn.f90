@@ -24,7 +24,7 @@ MODULE MoorDyn
    USE MoorDyn_IO
    USE NWTC_Library
    
-   USE WAVES, only: WaveGrid_n, WaveGrid_x0, WaveGrid_dx, WaveGrid_nx, WaveGrid_y0, WaveGrid_dy, WaveGrid_ny, WaveGrid_nz  ! seeing if I can get waves data here directly...
+   USE Waves, ONLY : WaveGrid_n, WaveGrid_x0, WaveGrid_dx, WaveGrid_nx, WaveGrid_y0, WaveGrid_dy, WaveGrid_ny, WaveGrid_nz  ! seeing if I can get waves data here directly...
 
    IMPLICIT NONE
 
@@ -6994,7 +6994,7 @@ END SUBROUTINE MD_GetOP
       if (length_squared > 0) then
          scaler = newlength/sqrt(length_squared)
       else                   ! if original vector is zero, return zero
-         scaler = 0_DbKi
+         scaler = 0.0_DbKi
       end if
       
       DO J=1,3

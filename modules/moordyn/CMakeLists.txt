@@ -25,7 +25,7 @@ set(MOORDYN_LIBS_SOURCES
 )
 
 add_library(moordynlib ${MOORDYN_LIBS_SOURCES})
-target_link_libraries(moordynlib nwtclibs)
+target_link_libraries(moordynlib hydrodynlib nwtclibs)
 
 install(TARGETS moordynlib
   EXPORT "${CMAKE_PROJECT_NAME}Libraries"
