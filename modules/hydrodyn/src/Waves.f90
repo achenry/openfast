@@ -30,7 +30,7 @@ MODULE Waves
       
    IMPLICIT NONE
    
-   PRIVATE
+   PUBLIC
 
    TYPE(ProgDesc), PARAMETER            :: Waves_ProgDesc = ProgDesc( 'Waves', '', '' )
 
