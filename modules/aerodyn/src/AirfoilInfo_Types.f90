@@ -38,29 +38,30 @@ IMPLICIT NONE
     INTEGER(IntKi), PUBLIC, PARAMETER  :: AFITable_2User = 3      ! 2D interpolation on AoA and UserProp [-]
 ! =========  AFI_UA_BL_Type  =======
   TYPE, PUBLIC :: AFI_UA_BL_Type
-    REAL(ReKi)  :: alpha0      !< Angle of attack for zero lift (used for Beddoes-Leishman unsteady aero) [input in degrees; stored as radians]
+    REAL(ReKi)  :: alpha0      !< Angle of attack for zero lift (also used in HGM) [input in degrees; stored as radians]
     REAL(ReKi)  :: alpha1      !< angle of attack at f = 0.7, approximately the stall angle; for alpha >= alpha0 [input in degrees; stored as radians]
     REAL(ReKi)  :: alpha2      !< angle of attack at f = 0.7, approximately the stall angle; for alpha < alpha0 [input in degrees; stored as radians]
     REAL(ReKi)  :: eta_e      !< Recovery factor in the range [0.85 - 0.95] [-]
     REAL(ReKi)  :: C_nalpha      !< Cn slope for zero lift (used for Beddoes-Leishman unsteady aero) [1/rad]
-    REAL(ReKi)  :: T_f0      !< initial value of T_f, airfoil specific, used to compute D_f and fprimeprime [-]
+    REAL(ReKi)  :: C_lalpha      !< Cl slope for zero lift (used for HGM unsteady aero only) -> calculated [1/rad]
+    REAL(ReKi)  :: T_f0      !< initial value of T_f, airfoil specific, used to compute D_f and fprimeprime (also used in HGM) [-]
     REAL(ReKi)  :: T_V0      !< initial value of T_V, airfoil specific, time parameter associated with the vortex lift decay process, used in Cn_v [-]
-    REAL(ReKi)  :: T_p      !< boundary-layer, leading edge pressure gradient time parameter; used in D_p; airfoil specific [-]
+    REAL(ReKi)  :: T_p      !< boundary-layer, leading edge pressure gradient time parameter; used in D_p; airfoil specific (also used in HGM) [-]
     REAL(ReKi)  :: T_VL      !< Initial value of the time constant associated with the vortex advection process; it represents the non-dimensional time in semi-chords, needed for a vortex to travel from LE to trailing edge (TE); it is used in the expression of Cvn. It depends on Re, M (weakly), and airfoil. [valid range = 6 - 13] [-]
-    REAL(ReKi)  :: b1      !< airfoil constant derived from experimental results, usually 0.14 [-]
-    REAL(ReKi)  :: b2      !< airfoil constant derived from experimental results, usually 0.53 [-]
+    REAL(ReKi)  :: b1      !< airfoil constant derived from experimental results (also used in HGM), usually 0.14 [-]
+    REAL(ReKi)  :: b2      !< airfoil constant derived from experimental results (also used in HGM), usually 0.53 [-]
     REAL(ReKi)  :: b5      !< airfoil constant derived from experimental results, usually 5.0 [-]
-    REAL(ReKi)  :: A1      !< airfoil constant derived from experimental results, usually 0.3 [-]
-    REAL(ReKi)  :: A2      !< airfoil constant derived from experimental results, usually 0.7 [-]
+    REAL(ReKi)  :: A1      !< airfoil constant derived from experimental results (also used in HGM), usually 0.3 [-]
+    REAL(ReKi)  :: A2      !< airfoil constant derived from experimental results (also used in HGM), usually 0.7 [-]
     REAL(ReKi)  :: A5      !< airfoil constant derived from experimental results, usually 1.0 [-]
     REAL(ReKi)  :: S1      !< Constant in the f curve best-fit for alpha0<=AOA<=alpha1 [-]
     REAL(ReKi)  :: S2      !< Constant in the f curve best-fit for         AOA> alpha1 [-]
     REAL(ReKi)  :: S3      !< Constant in the f curve best-fit for alpha2<=AOA< alpha0 [-]
     REAL(ReKi)  :: S4      !< Constant in the f curve best-fit for         AOA< alpha2 [-]
-    REAL(ReKi)  :: Cn1      !< Cn at stall value for positive angle of attack (used for Beddoes-Leishman unsteady aero) [or critical value of Cn_prime at LE separation for alpha >= alpha0] [-]
-    REAL(ReKi)  :: Cn2      !< Cn at stall value for negative angle (used for Beddoes-Leishman unsteady aero) or [critical value of Cn_prime at LE separation for alpha < alpha0] [-]
+    REAL(ReKi)  :: Cn1      !< Cn at stall value for positive angle of attack [or critical value of Cn_prime at LE separation for alpha >= alpha0] [-]
+    REAL(ReKi)  :: Cn2      !< Cn at stall value for negative angle of attack [or critical value of Cn_prime at LE separation for alpha < alpha0] [-]
     REAL(ReKi)  :: St_sh      !< Strouhal's shedding frequency constant. [-]
-    REAL(ReKi)  :: Cd0      !< Minimum Cd value (used for Beddoes-Leishman unsteady aero) [-]
+    REAL(ReKi)  :: Cd0      !< Minimum Cd value [-]
     REAL(ReKi)  :: Cm0      !< 2D pitching moment coefficient at zero lift, positive if nose is up [-]
     REAL(ReKi)  :: k0      !< airfoil parameter in the x_cp_hat curve best-fit [ignored if UAMod<>1] [-]
     REAL(ReKi)  :: k1      !< airfoil parameter in the x_cp_hat curve best-fit [ignored if UAMod<>1] [-]
@@ -69,8 +70,62 @@ IMPLICIT NONE
     REAL(ReKi)  :: k1_hat      !< Constant in the expression of Cc due to leading edge vortex effects.  [ignored if UAMod<>1] [-]
     REAL(ReKi)  :: x_cp_bar      !< Constant in the expression of \hat(x)_cp^v [ignored if UAMod<>1, default = 0.2] [-]
     REAL(ReKi)  :: UACutout      !< Angle of attack above which unsteady aerodynamics are disabled [input in degrees; stored as radians]
-    REAL(ReKi)  :: filtCutOff      !< low pass filter cut-off frequency for the pitching rate and accelerations [Hz]
+    REAL(ReKi)  :: UACutout_delta      !< Number of angles-of-attack below UACutout where unsteady aerodynamics begin to be disabled [input in degrees; stored as radians]
+    REAL(ReKi)  :: UACutout_blend      !< Angle of attack above which unsteady aerodynamics begins to be disabled [stored as radians]
+    REAL(ReKi)  :: filtCutOff      !< Reduced frequency cutoff used to calculate the dynamic low pass filter cut-off frequency for the pitching rate and accelerations [default = 0.5] [-]
+    REAL(ReKi)  :: alphaUpper      !< (input) upper angle of attack defining fully attached region [input in degrees; stored as radians]
+    REAL(ReKi)  :: alphaLower      !< (input) lower angle of attack defining fully attached region [input in degrees; stored as radians]
+    REAL(ReKi)  :: c_Rate      !< (calculated) linear slope in the fully attached region of cn or cl [1/rad]
+    REAL(ReKi)  :: c_RateUpper      !< (calculated) linear slope in the upper fully attached region of cn or cl [1/rad]
+    REAL(ReKi)  :: c_RateLower      !< (calculated) linear slope in the lower fully attached region of cn or cl [1/rad]
+    REAL(ReKi)  :: c_alphaLower      !< (calculated) value of cn or cl at alphaLower [-]
+    REAL(ReKi)  :: c_alphaUpper      !< (calculated) value of cn or cl at alphaUpper [-]
+    REAL(ReKi)  :: alphaUpperWrap      !< (calculated) upper angle of attack defining fully attached wrap-around region [stored as radians]
+    REAL(ReKi)  :: alphaLowerWrap      !< (calculated) lower angle of attack defining fully attached wrap-around region [stored as radians]
+    REAL(ReKi)  :: c_RateWrap      !< (calculated) linear slope in the fully attached wrap-around region of cn or cl (will be negative) [1/rad]
+    REAL(ReKi)  :: c_alphaLowerWrap      !< (calculated) value of cn or cl at alphaLowerWrap [-]
+    REAL(ReKi)  :: c_alphaUpperWrap      !< (calculated) value of cn or cl at alphaUpperWrap [-]
   END TYPE AFI_UA_BL_Type
+! =======================
+! =========  AFI_UA_BL_Default_Type  =======
+  TYPE, PUBLIC :: AFI_UA_BL_Default_Type
+    LOGICAL  :: alpha0 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: alpha1 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: alpha2 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: eta_e = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: C_nalpha = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: C_lalpha = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: T_f0 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: T_V0 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: T_p = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: T_VL = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: b1 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: b2 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: b5 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: A1 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: A2 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: A5 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: S1 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: S2 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: S3 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: S4 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: Cn1 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: Cn2 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: St_sh = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: Cd0 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: Cm0 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: k0 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: k1 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: k2 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: k3 = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: k1_hat = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: x_cp_bar = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: UACutout = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: UACutout_delta = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: filtCutOff = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: alphaUpper = .true.      !< Calculate value for this input? [-]
+    LOGICAL  :: alphaLower = .true.      !< Calculate value for this input? [-]
+  END TYPE AFI_UA_BL_Default_Type
 ! =======================
 ! =========  AFI_Table_Type  =======
   TYPE, PUBLIC :: AFI_Table_Type
@@ -94,6 +149,7 @@ IMPLICIT NONE
     INTEGER(IntKi)  :: InCol_Cd      !< The column of the coefficient tables that holds the minimum pressure coefficient [-]
     INTEGER(IntKi)  :: InCol_Cm      !< The column of the coefficient tables that holds the pitching-moment coefficient [-]
     INTEGER(IntKi)  :: InCol_Cpmin      !< The column of the coefficient tables that holds the minimum pressure coefficient [-]
+    LOGICAL  :: UA_f_cn      !< Whether any UA separation functions should be calculated on cn (true) or cl (false) [-]
   END TYPE AFI_InitInputType
 ! =======================
 ! =========  AFI_InitOutputType  =======
@@ -107,15 +163,19 @@ IMPLICIT NONE
     INTEGER(IntKi)  :: ColCl      !< The column in the p%Coefs arrays that contains Cl data [-]
     INTEGER(IntKi)  :: ColCm      !< The column in the p%Coefs arrays that contains Cm data [-]
     INTEGER(IntKi)  :: ColCpmin      !< The column in the p%Coefs arrays that contains Cpmin data [-]
+    INTEGER(IntKi)  :: ColUAf      !< The column in the p%Coefs arrays that contains f_st data (on cl or cn) for UA [-]
     INTEGER(IntKi)  :: AFTabMod      !< Interpolation method for multiple airfoil tables {1 = 1D on AoA (only first table is used); 2 = 2D on AoA and Re; 3 = 2D on AoA and UserProp} [-]
     REAL(ReKi) , DIMENSION(:), ALLOCATABLE  :: secondVals      !< The values of the 2nd dependent variable when using multiple airfoil tables (Re or UserProp, saved in an array so that the logic in the interpolation scheme is cleaner) [-]
     INTEGER(IntKi)  :: InterpOrd      !< Interpolation order [-]
+    REAL(ReKi)  :: RelThickness      !< Relative thickness of airfoil thickness/chord [-]
     REAL(ReKi)  :: NonDimArea      !< The non-dimensional area of the airfoil (area/chord^2) [unused] [-]
     INTEGER(IntKi)  :: NumCoords      !< The number of coordinates which define the airfoil shape [-]
     REAL(ReKi) , DIMENSION(:), ALLOCATABLE  :: X_Coord      !< X-coordinate for the airfoil shape [unused] [-]
     REAL(ReKi) , DIMENSION(:), ALLOCATABLE  :: Y_Coord      !< Y-coordinate for the airfoil shape [unused] [-]
     INTEGER(IntKi)  :: NumTabs      !< The number of airfoil tables in the airfoil file [-]
     TYPE(AFI_Table_Type) , DIMENSION(:), ALLOCATABLE  :: Table      !< The tables of airfoil data for given Re and control setting [-]
+    CHARACTER(1024)  :: BL_file      !< The name of the file with the boundary layer data [-]
+    CHARACTER(1024)  :: FileName      !< The name of the file that stored this information. [-]
   END TYPE AFI_ParameterType
 ! =======================
 ! =========  AFI_InputType  =======
@@ -133,6 +193,9 @@ IMPLICIT NONE
     REAL(ReKi)  :: Cpmin = 0.      !< Dimensionless coefficient of minimum pressure [-]
     REAL(ReKi)  :: Cd0 = 0.      !< Minimum Cd value (used for Beddoes-Leishman unsteady aero) [-]
     REAL(ReKi)  :: Cm0 = 0.      !< 2D pitching moment coefficient at zero lift, positive if nose is up [-]
+    REAL(ReKi)  :: f_st = 0.      !< separation function based on cl or cn (used for UA models) [-]
+    REAL(ReKi)  :: FullySeparate = 0.      !< fully separated cn or cl polar function (used for UA models) [-]
+    REAL(ReKi)  :: FullyAttached = 0.      !< fully attached cn or cl polar function (used for UA models) [-]
   END TYPE AFI_OutputType
 ! =======================
 CONTAINS
@@ -158,6 +221,7 @@ CONTAINS
     DstUA_BL_TypeData%alpha2 = SrcUA_BL_TypeData%alpha2
     DstUA_BL_TypeData%eta_e = SrcUA_BL_TypeData%eta_e
     DstUA_BL_TypeData%C_nalpha = SrcUA_BL_TypeData%C_nalpha
+    DstUA_BL_TypeData%C_lalpha = SrcUA_BL_TypeData%C_lalpha
     DstUA_BL_TypeData%T_f0 = SrcUA_BL_TypeData%T_f0
     DstUA_BL_TypeData%T_V0 = SrcUA_BL_TypeData%T_V0
     DstUA_BL_TypeData%T_p = SrcUA_BL_TypeData%T_p
@@ -184,7 +248,21 @@ CONTAINS
     DstUA_BL_TypeData%k1_hat = SrcUA_BL_TypeData%k1_hat
     DstUA_BL_TypeData%x_cp_bar = SrcUA_BL_TypeData%x_cp_bar
     DstUA_BL_TypeData%UACutout = SrcUA_BL_TypeData%UACutout
+    DstUA_BL_TypeData%UACutout_delta = SrcUA_BL_TypeData%UACutout_delta
+    DstUA_BL_TypeData%UACutout_blend = SrcUA_BL_TypeData%UACutout_blend
     DstUA_BL_TypeData%filtCutOff = SrcUA_BL_TypeData%filtCutOff
+    DstUA_BL_TypeData%alphaUpper = SrcUA_BL_TypeData%alphaUpper
+    DstUA_BL_TypeData%alphaLower = SrcUA_BL_TypeData%alphaLower
+    DstUA_BL_TypeData%c_Rate = SrcUA_BL_TypeData%c_Rate
+    DstUA_BL_TypeData%c_RateUpper = SrcUA_BL_TypeData%c_RateUpper
+    DstUA_BL_TypeData%c_RateLower = SrcUA_BL_TypeData%c_RateLower
+    DstUA_BL_TypeData%c_alphaLower = SrcUA_BL_TypeData%c_alphaLower
+    DstUA_BL_TypeData%c_alphaUpper = SrcUA_BL_TypeData%c_alphaUpper
+    DstUA_BL_TypeData%alphaUpperWrap = SrcUA_BL_TypeData%alphaUpperWrap
+    DstUA_BL_TypeData%alphaLowerWrap = SrcUA_BL_TypeData%alphaLowerWrap
+    DstUA_BL_TypeData%c_RateWrap = SrcUA_BL_TypeData%c_RateWrap
+    DstUA_BL_TypeData%c_alphaLowerWrap = SrcUA_BL_TypeData%c_alphaLowerWrap
+    DstUA_BL_TypeData%c_alphaUpperWrap = SrcUA_BL_TypeData%c_alphaUpperWrap
  END SUBROUTINE AFI_CopyUA_BL_Type
 
  SUBROUTINE AFI_DestroyUA_BL_Type( UA_BL_TypeData, ErrStat, ErrMsg )
@@ -238,6 +316,7 @@ CONTAINS
       Re_BufSz   = Re_BufSz   + 1  ! alpha2
       Re_BufSz   = Re_BufSz   + 1  ! eta_e
       Re_BufSz   = Re_BufSz   + 1  ! C_nalpha
+      Re_BufSz   = Re_BufSz   + 1  ! C_lalpha
       Re_BufSz   = Re_BufSz   + 1  ! T_f0
       Re_BufSz   = Re_BufSz   + 1  ! T_V0
       Re_BufSz   = Re_BufSz   + 1  ! T_p
@@ -264,7 +343,21 @@ CONTAINS
       Re_BufSz   = Re_BufSz   + 1  ! k1_hat
       Re_BufSz   = Re_BufSz   + 1  ! x_cp_bar
       Re_BufSz   = Re_BufSz   + 1  ! UACutout
+      Re_BufSz   = Re_BufSz   + 1  ! UACutout_delta
+      Re_BufSz   = Re_BufSz   + 1  ! UACutout_blend
       Re_BufSz   = Re_BufSz   + 1  ! filtCutOff
+      Re_BufSz   = Re_BufSz   + 1  ! alphaUpper
+      Re_BufSz   = Re_BufSz   + 1  ! alphaLower
+      Re_BufSz   = Re_BufSz   + 1  ! c_Rate
+      Re_BufSz   = Re_BufSz   + 1  ! c_RateUpper
+      Re_BufSz   = Re_BufSz   + 1  ! c_RateLower
+      Re_BufSz   = Re_BufSz   + 1  ! c_alphaLower
+      Re_BufSz   = Re_BufSz   + 1  ! c_alphaUpper
+      Re_BufSz   = Re_BufSz   + 1  ! alphaUpperWrap
+      Re_BufSz   = Re_BufSz   + 1  ! alphaLowerWrap
+      Re_BufSz   = Re_BufSz   + 1  ! c_RateWrap
+      Re_BufSz   = Re_BufSz   + 1  ! c_alphaLowerWrap
+      Re_BufSz   = Re_BufSz   + 1  ! c_alphaUpperWrap
   IF ( Re_BufSz  .GT. 0 ) THEN 
      ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
      IF (ErrStat2 /= 0) THEN 
@@ -292,70 +385,100 @@ CONTAINS
   Db_Xferred  = 1
   Int_Xferred = 1
 
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%alpha0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%alpha1
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%alpha2
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%eta_e
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%C_nalpha
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%T_f0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%T_V0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%T_p
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%T_VL
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%b1
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%b2
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%b5
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%A1
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%A2
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%A5
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%S1
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%S2
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%S3
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%S4
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cn1
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cn2
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%St_sh
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cd0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cm0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%k0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%k1
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%k2
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%k3
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%k1_hat
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%x_cp_bar
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%UACutout
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%filtCutOff
-      Re_Xferred   = Re_Xferred   + 1
+    ReKiBuf(Re_Xferred) = InData%alpha0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%alpha1
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%alpha2
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%eta_e
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%C_nalpha
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%C_lalpha
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%T_f0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%T_V0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%T_p
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%T_VL
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%b1
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%b2
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%b5
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%A1
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%A2
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%A5
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%S1
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%S2
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%S3
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%S4
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cn1
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cn2
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%St_sh
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cd0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cm0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%k0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%k1
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%k2
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%k3
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%k1_hat
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%x_cp_bar
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%UACutout
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%UACutout_delta
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%UACutout_blend
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%filtCutOff
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%alphaUpper
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%alphaLower
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_Rate
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_RateUpper
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_RateLower
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_alphaLower
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_alphaUpper
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%alphaUpperWrap
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%alphaLowerWrap
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_RateWrap
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_alphaLowerWrap
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%c_alphaUpperWrap
+    Re_Xferred = Re_Xferred + 1
  END SUBROUTINE AFI_PackUA_BL_Type
 
  SUBROUTINE AFI_UnPackUA_BL_Type( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
@@ -371,12 +494,6 @@ CONTAINS
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: i1, i1_l, i1_u  !  bounds (upper/lower) for an array dimension 1
   INTEGER(IntKi)                 :: i2, i2_l, i2_u  !  bounds (upper/lower) for an array dimension 2
   INTEGER(IntKi)                 :: i3, i3_l, i3_u  !  bounds (upper/lower) for an array dimension 3
@@ -393,71 +510,436 @@ CONTAINS
   Re_Xferred  = 1
   Db_Xferred  = 1
   Int_Xferred  = 1
-      OutData%alpha0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%alpha1 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%alpha2 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%eta_e = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%C_nalpha = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%T_f0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%T_V0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%T_p = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%T_VL = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%b1 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%b2 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%b5 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%A1 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%A2 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%A5 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%S1 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%S2 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%S3 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%S4 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cn1 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cn2 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%St_sh = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cd0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cm0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%k0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%k1 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%k2 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%k3 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%k1_hat = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%x_cp_bar = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%UACutout = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%filtCutOff = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
+    OutData%alpha0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%alpha1 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%alpha2 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%eta_e = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%C_nalpha = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%C_lalpha = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%T_f0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%T_V0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%T_p = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%T_VL = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%b1 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%b2 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%b5 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%A1 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%A2 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%A5 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%S1 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%S2 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%S3 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%S4 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cn1 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cn2 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%St_sh = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cd0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cm0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%k0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%k1 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%k2 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%k3 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%k1_hat = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%x_cp_bar = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%UACutout = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%UACutout_delta = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%UACutout_blend = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%filtCutOff = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%alphaUpper = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%alphaLower = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_Rate = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_RateUpper = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_RateLower = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_alphaLower = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_alphaUpper = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%alphaUpperWrap = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%alphaLowerWrap = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_RateWrap = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_alphaLowerWrap = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%c_alphaUpperWrap = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
  END SUBROUTINE AFI_UnPackUA_BL_Type
+
+ SUBROUTINE AFI_CopyUA_BL_Default_Type( SrcUA_BL_Default_TypeData, DstUA_BL_Default_TypeData, CtrlCode, ErrStat, ErrMsg )
+   TYPE(AFI_UA_BL_Default_Type), INTENT(IN) :: SrcUA_BL_Default_TypeData
+   TYPE(AFI_UA_BL_Default_Type), INTENT(INOUT) :: DstUA_BL_Default_TypeData
+   INTEGER(IntKi),  INTENT(IN   ) :: CtrlCode
+   INTEGER(IntKi),  INTENT(  OUT) :: ErrStat
+   CHARACTER(*),    INTENT(  OUT) :: ErrMsg
+! Local 
+   INTEGER(IntKi)                 :: i,j,k
+   INTEGER(IntKi)                 :: ErrStat2
+   CHARACTER(ErrMsgLen)           :: ErrMsg2
+   CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_CopyUA_BL_Default_Type'
+! 
+   ErrStat = ErrID_None
+   ErrMsg  = ""
+    DstUA_BL_Default_TypeData%alpha0 = SrcUA_BL_Default_TypeData%alpha0
+    DstUA_BL_Default_TypeData%alpha1 = SrcUA_BL_Default_TypeData%alpha1
+    DstUA_BL_Default_TypeData%alpha2 = SrcUA_BL_Default_TypeData%alpha2
+    DstUA_BL_Default_TypeData%eta_e = SrcUA_BL_Default_TypeData%eta_e
+    DstUA_BL_Default_TypeData%C_nalpha = SrcUA_BL_Default_TypeData%C_nalpha
+    DstUA_BL_Default_TypeData%C_lalpha = SrcUA_BL_Default_TypeData%C_lalpha
+    DstUA_BL_Default_TypeData%T_f0 = SrcUA_BL_Default_TypeData%T_f0
+    DstUA_BL_Default_TypeData%T_V0 = SrcUA_BL_Default_TypeData%T_V0
+    DstUA_BL_Default_TypeData%T_p = SrcUA_BL_Default_TypeData%T_p
+    DstUA_BL_Default_TypeData%T_VL = SrcUA_BL_Default_TypeData%T_VL
+    DstUA_BL_Default_TypeData%b1 = SrcUA_BL_Default_TypeData%b1
+    DstUA_BL_Default_TypeData%b2 = SrcUA_BL_Default_TypeData%b2
+    DstUA_BL_Default_TypeData%b5 = SrcUA_BL_Default_TypeData%b5
+    DstUA_BL_Default_TypeData%A1 = SrcUA_BL_Default_TypeData%A1
+    DstUA_BL_Default_TypeData%A2 = SrcUA_BL_Default_TypeData%A2
+    DstUA_BL_Default_TypeData%A5 = SrcUA_BL_Default_TypeData%A5
+    DstUA_BL_Default_TypeData%S1 = SrcUA_BL_Default_TypeData%S1
+    DstUA_BL_Default_TypeData%S2 = SrcUA_BL_Default_TypeData%S2
+    DstUA_BL_Default_TypeData%S3 = SrcUA_BL_Default_TypeData%S3
+    DstUA_BL_Default_TypeData%S4 = SrcUA_BL_Default_TypeData%S4
+    DstUA_BL_Default_TypeData%Cn1 = SrcUA_BL_Default_TypeData%Cn1
+    DstUA_BL_Default_TypeData%Cn2 = SrcUA_BL_Default_TypeData%Cn2
+    DstUA_BL_Default_TypeData%St_sh = SrcUA_BL_Default_TypeData%St_sh
+    DstUA_BL_Default_TypeData%Cd0 = SrcUA_BL_Default_TypeData%Cd0
+    DstUA_BL_Default_TypeData%Cm0 = SrcUA_BL_Default_TypeData%Cm0
+    DstUA_BL_Default_TypeData%k0 = SrcUA_BL_Default_TypeData%k0
+    DstUA_BL_Default_TypeData%k1 = SrcUA_BL_Default_TypeData%k1
+    DstUA_BL_Default_TypeData%k2 = SrcUA_BL_Default_TypeData%k2
+    DstUA_BL_Default_TypeData%k3 = SrcUA_BL_Default_TypeData%k3
+    DstUA_BL_Default_TypeData%k1_hat = SrcUA_BL_Default_TypeData%k1_hat
+    DstUA_BL_Default_TypeData%x_cp_bar = SrcUA_BL_Default_TypeData%x_cp_bar
+    DstUA_BL_Default_TypeData%UACutout = SrcUA_BL_Default_TypeData%UACutout
+    DstUA_BL_Default_TypeData%UACutout_delta = SrcUA_BL_Default_TypeData%UACutout_delta
+    DstUA_BL_Default_TypeData%filtCutOff = SrcUA_BL_Default_TypeData%filtCutOff
+    DstUA_BL_Default_TypeData%alphaUpper = SrcUA_BL_Default_TypeData%alphaUpper
+    DstUA_BL_Default_TypeData%alphaLower = SrcUA_BL_Default_TypeData%alphaLower
+ END SUBROUTINE AFI_CopyUA_BL_Default_Type
+
+ SUBROUTINE AFI_DestroyUA_BL_Default_Type( UA_BL_Default_TypeData, ErrStat, ErrMsg )
+  TYPE(AFI_UA_BL_Default_Type), INTENT(INOUT) :: UA_BL_Default_TypeData
+  INTEGER(IntKi),  INTENT(  OUT) :: ErrStat
+  CHARACTER(*),    INTENT(  OUT) :: ErrMsg
+  CHARACTER(*),    PARAMETER :: RoutineName = 'AFI_DestroyUA_BL_Default_Type'
+  INTEGER(IntKi)                 :: i, i1, i2, i3, i4, i5 
+! 
+  ErrStat = ErrID_None
+  ErrMsg  = ""
+ END SUBROUTINE AFI_DestroyUA_BL_Default_Type
+
+ SUBROUTINE AFI_PackUA_BL_Default_Type( ReKiBuf, DbKiBuf, IntKiBuf, Indata, ErrStat, ErrMsg, SizeOnly )
+  REAL(ReKi),       ALLOCATABLE, INTENT(  OUT) :: ReKiBuf(:)
+  REAL(DbKi),       ALLOCATABLE, INTENT(  OUT) :: DbKiBuf(:)
+  INTEGER(IntKi),   ALLOCATABLE, INTENT(  OUT) :: IntKiBuf(:)
+  TYPE(AFI_UA_BL_Default_Type),  INTENT(IN) :: InData
+  INTEGER(IntKi),   INTENT(  OUT) :: ErrStat
+  CHARACTER(*),     INTENT(  OUT) :: ErrMsg
+  LOGICAL,OPTIONAL, INTENT(IN   ) :: SizeOnly
+    ! Local variables
+  INTEGER(IntKi)                 :: Re_BufSz
+  INTEGER(IntKi)                 :: Re_Xferred
+  INTEGER(IntKi)                 :: Db_BufSz
+  INTEGER(IntKi)                 :: Db_Xferred
+  INTEGER(IntKi)                 :: Int_BufSz
+  INTEGER(IntKi)                 :: Int_Xferred
+  INTEGER(IntKi)                 :: i,i1,i2,i3,i4,i5
+  LOGICAL                        :: OnlySize ! if present and true, do not pack, just allocate buffers
+  INTEGER(IntKi)                 :: ErrStat2
+  CHARACTER(ErrMsgLen)           :: ErrMsg2
+  CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_PackUA_BL_Default_Type'
+ ! buffers to store subtypes, if any
+  REAL(ReKi),      ALLOCATABLE   :: Re_Buf(:)
+  REAL(DbKi),      ALLOCATABLE   :: Db_Buf(:)
+  INTEGER(IntKi),  ALLOCATABLE   :: Int_Buf(:)
+
+  OnlySize = .FALSE.
+  IF ( PRESENT(SizeOnly) ) THEN
+    OnlySize = SizeOnly
+  ENDIF
+    !
+  ErrStat = ErrID_None
+  ErrMsg  = ""
+  Re_BufSz  = 0
+  Db_BufSz  = 0
+  Int_BufSz  = 0
+      Int_BufSz  = Int_BufSz  + 1  ! alpha0
+      Int_BufSz  = Int_BufSz  + 1  ! alpha1
+      Int_BufSz  = Int_BufSz  + 1  ! alpha2
+      Int_BufSz  = Int_BufSz  + 1  ! eta_e
+      Int_BufSz  = Int_BufSz  + 1  ! C_nalpha
+      Int_BufSz  = Int_BufSz  + 1  ! C_lalpha
+      Int_BufSz  = Int_BufSz  + 1  ! T_f0
+      Int_BufSz  = Int_BufSz  + 1  ! T_V0
+      Int_BufSz  = Int_BufSz  + 1  ! T_p
+      Int_BufSz  = Int_BufSz  + 1  ! T_VL
+      Int_BufSz  = Int_BufSz  + 1  ! b1
+      Int_BufSz  = Int_BufSz  + 1  ! b2
+      Int_BufSz  = Int_BufSz  + 1  ! b5
+      Int_BufSz  = Int_BufSz  + 1  ! A1
+      Int_BufSz  = Int_BufSz  + 1  ! A2
+      Int_BufSz  = Int_BufSz  + 1  ! A5
+      Int_BufSz  = Int_BufSz  + 1  ! S1
+      Int_BufSz  = Int_BufSz  + 1  ! S2
+      Int_BufSz  = Int_BufSz  + 1  ! S3
+      Int_BufSz  = Int_BufSz  + 1  ! S4
+      Int_BufSz  = Int_BufSz  + 1  ! Cn1
+      Int_BufSz  = Int_BufSz  + 1  ! Cn2
+      Int_BufSz  = Int_BufSz  + 1  ! St_sh
+      Int_BufSz  = Int_BufSz  + 1  ! Cd0
+      Int_BufSz  = Int_BufSz  + 1  ! Cm0
+      Int_BufSz  = Int_BufSz  + 1  ! k0
+      Int_BufSz  = Int_BufSz  + 1  ! k1
+      Int_BufSz  = Int_BufSz  + 1  ! k2
+      Int_BufSz  = Int_BufSz  + 1  ! k3
+      Int_BufSz  = Int_BufSz  + 1  ! k1_hat
+      Int_BufSz  = Int_BufSz  + 1  ! x_cp_bar
+      Int_BufSz  = Int_BufSz  + 1  ! UACutout
+      Int_BufSz  = Int_BufSz  + 1  ! UACutout_delta
+      Int_BufSz  = Int_BufSz  + 1  ! filtCutOff
+      Int_BufSz  = Int_BufSz  + 1  ! alphaUpper
+      Int_BufSz  = Int_BufSz  + 1  ! alphaLower
+  IF ( Re_BufSz  .GT. 0 ) THEN 
+     ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
+     IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating ReKiBuf.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+     END IF
+  END IF
+  IF ( Db_BufSz  .GT. 0 ) THEN 
+     ALLOCATE( DbKiBuf(  Db_BufSz  ), STAT=ErrStat2 )
+     IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating DbKiBuf.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+     END IF
+  END IF
+  IF ( Int_BufSz  .GT. 0 ) THEN 
+     ALLOCATE( IntKiBuf(  Int_BufSz  ), STAT=ErrStat2 )
+     IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating IntKiBuf.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+     END IF
+  END IF
+  IF(OnlySize) RETURN ! return early if only trying to allocate buffers (not pack them)
+
+  Re_Xferred  = 1
+  Db_Xferred  = 1
+  Int_Xferred = 1
+
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%alpha0, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%alpha1, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%alpha2, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%eta_e, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%C_nalpha, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%C_lalpha, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%T_f0, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%T_V0, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%T_p, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%T_VL, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%b1, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%b2, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%b5, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%A1, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%A2, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%A5, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%S1, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%S2, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%S3, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%S4, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%Cn1, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%Cn2, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%St_sh, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%Cd0, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%Cm0, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%k0, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%k1, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%k2, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%k3, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%k1_hat, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%x_cp_bar, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%UACutout, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%UACutout_delta, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%filtCutOff, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%alphaUpper, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%alphaLower, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+ END SUBROUTINE AFI_PackUA_BL_Default_Type
+
+ SUBROUTINE AFI_UnPackUA_BL_Default_Type( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
+  REAL(ReKi),      ALLOCATABLE, INTENT(IN   ) :: ReKiBuf(:)
+  REAL(DbKi),      ALLOCATABLE, INTENT(IN   ) :: DbKiBuf(:)
+  INTEGER(IntKi),  ALLOCATABLE, INTENT(IN   ) :: IntKiBuf(:)
+  TYPE(AFI_UA_BL_Default_Type), INTENT(INOUT) :: OutData
+  INTEGER(IntKi),  INTENT(  OUT) :: ErrStat
+  CHARACTER(*),    INTENT(  OUT) :: ErrMsg
+    ! Local variables
+  INTEGER(IntKi)                 :: Buf_size
+  INTEGER(IntKi)                 :: Re_Xferred
+  INTEGER(IntKi)                 :: Db_Xferred
+  INTEGER(IntKi)                 :: Int_Xferred
+  INTEGER(IntKi)                 :: i
+  INTEGER(IntKi)                 :: ErrStat2
+  CHARACTER(ErrMsgLen)           :: ErrMsg2
+  CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_UnPackUA_BL_Default_Type'
+ ! buffers to store meshes, if any
+  REAL(ReKi),      ALLOCATABLE   :: Re_Buf(:)
+  REAL(DbKi),      ALLOCATABLE   :: Db_Buf(:)
+  INTEGER(IntKi),  ALLOCATABLE   :: Int_Buf(:)
+    !
+  ErrStat = ErrID_None
+  ErrMsg  = ""
+  Re_Xferred  = 1
+  Db_Xferred  = 1
+  Int_Xferred  = 1
+    OutData%alpha0 = TRANSFER(IntKiBuf(Int_Xferred), OutData%alpha0)
+    Int_Xferred = Int_Xferred + 1
+    OutData%alpha1 = TRANSFER(IntKiBuf(Int_Xferred), OutData%alpha1)
+    Int_Xferred = Int_Xferred + 1
+    OutData%alpha2 = TRANSFER(IntKiBuf(Int_Xferred), OutData%alpha2)
+    Int_Xferred = Int_Xferred + 1
+    OutData%eta_e = TRANSFER(IntKiBuf(Int_Xferred), OutData%eta_e)
+    Int_Xferred = Int_Xferred + 1
+    OutData%C_nalpha = TRANSFER(IntKiBuf(Int_Xferred), OutData%C_nalpha)
+    Int_Xferred = Int_Xferred + 1
+    OutData%C_lalpha = TRANSFER(IntKiBuf(Int_Xferred), OutData%C_lalpha)
+    Int_Xferred = Int_Xferred + 1
+    OutData%T_f0 = TRANSFER(IntKiBuf(Int_Xferred), OutData%T_f0)
+    Int_Xferred = Int_Xferred + 1
+    OutData%T_V0 = TRANSFER(IntKiBuf(Int_Xferred), OutData%T_V0)
+    Int_Xferred = Int_Xferred + 1
+    OutData%T_p = TRANSFER(IntKiBuf(Int_Xferred), OutData%T_p)
+    Int_Xferred = Int_Xferred + 1
+    OutData%T_VL = TRANSFER(IntKiBuf(Int_Xferred), OutData%T_VL)
+    Int_Xferred = Int_Xferred + 1
+    OutData%b1 = TRANSFER(IntKiBuf(Int_Xferred), OutData%b1)
+    Int_Xferred = Int_Xferred + 1
+    OutData%b2 = TRANSFER(IntKiBuf(Int_Xferred), OutData%b2)
+    Int_Xferred = Int_Xferred + 1
+    OutData%b5 = TRANSFER(IntKiBuf(Int_Xferred), OutData%b5)
+    Int_Xferred = Int_Xferred + 1
+    OutData%A1 = TRANSFER(IntKiBuf(Int_Xferred), OutData%A1)
+    Int_Xferred = Int_Xferred + 1
+    OutData%A2 = TRANSFER(IntKiBuf(Int_Xferred), OutData%A2)
+    Int_Xferred = Int_Xferred + 1
+    OutData%A5 = TRANSFER(IntKiBuf(Int_Xferred), OutData%A5)
+    Int_Xferred = Int_Xferred + 1
+    OutData%S1 = TRANSFER(IntKiBuf(Int_Xferred), OutData%S1)
+    Int_Xferred = Int_Xferred + 1
+    OutData%S2 = TRANSFER(IntKiBuf(Int_Xferred), OutData%S2)
+    Int_Xferred = Int_Xferred + 1
+    OutData%S3 = TRANSFER(IntKiBuf(Int_Xferred), OutData%S3)
+    Int_Xferred = Int_Xferred + 1
+    OutData%S4 = TRANSFER(IntKiBuf(Int_Xferred), OutData%S4)
+    Int_Xferred = Int_Xferred + 1
+    OutData%Cn1 = TRANSFER(IntKiBuf(Int_Xferred), OutData%Cn1)
+    Int_Xferred = Int_Xferred + 1
+    OutData%Cn2 = TRANSFER(IntKiBuf(Int_Xferred), OutData%Cn2)
+    Int_Xferred = Int_Xferred + 1
+    OutData%St_sh = TRANSFER(IntKiBuf(Int_Xferred), OutData%St_sh)
+    Int_Xferred = Int_Xferred + 1
+    OutData%Cd0 = TRANSFER(IntKiBuf(Int_Xferred), OutData%Cd0)
+    Int_Xferred = Int_Xferred + 1
+    OutData%Cm0 = TRANSFER(IntKiBuf(Int_Xferred), OutData%Cm0)
+    Int_Xferred = Int_Xferred + 1
+    OutData%k0 = TRANSFER(IntKiBuf(Int_Xferred), OutData%k0)
+    Int_Xferred = Int_Xferred + 1
+    OutData%k1 = TRANSFER(IntKiBuf(Int_Xferred), OutData%k1)
+    Int_Xferred = Int_Xferred + 1
+    OutData%k2 = TRANSFER(IntKiBuf(Int_Xferred), OutData%k2)
+    Int_Xferred = Int_Xferred + 1
+    OutData%k3 = TRANSFER(IntKiBuf(Int_Xferred), OutData%k3)
+    Int_Xferred = Int_Xferred + 1
+    OutData%k1_hat = TRANSFER(IntKiBuf(Int_Xferred), OutData%k1_hat)
+    Int_Xferred = Int_Xferred + 1
+    OutData%x_cp_bar = TRANSFER(IntKiBuf(Int_Xferred), OutData%x_cp_bar)
+    Int_Xferred = Int_Xferred + 1
+    OutData%UACutout = TRANSFER(IntKiBuf(Int_Xferred), OutData%UACutout)
+    Int_Xferred = Int_Xferred + 1
+    OutData%UACutout_delta = TRANSFER(IntKiBuf(Int_Xferred), OutData%UACutout_delta)
+    Int_Xferred = Int_Xferred + 1
+    OutData%filtCutOff = TRANSFER(IntKiBuf(Int_Xferred), OutData%filtCutOff)
+    Int_Xferred = Int_Xferred + 1
+    OutData%alphaUpper = TRANSFER(IntKiBuf(Int_Xferred), OutData%alphaUpper)
+    Int_Xferred = Int_Xferred + 1
+    OutData%alphaLower = TRANSFER(IntKiBuf(Int_Xferred), OutData%alphaLower)
+    Int_Xferred = Int_Xferred + 1
+ END SUBROUTINE AFI_UnPackUA_BL_Default_Type
 
  SUBROUTINE AFI_CopyTable_Type( SrcTable_TypeData, DstTable_TypeData, CtrlCode, ErrStat, ErrMsg )
    TYPE(AFI_Table_Type), INTENT(IN) :: SrcTable_TypeData
@@ -659,8 +1141,10 @@ ENDIF
     IntKiBuf( Int_Xferred + 1) = UBOUND(InData%Alpha,1)
     Int_Xferred = Int_Xferred + 2
 
-      IF (SIZE(InData%Alpha)>0) ReKiBuf ( Re_Xferred:Re_Xferred+(SIZE(InData%Alpha))-1 ) = PACK(InData%Alpha,.TRUE.)
-      Re_Xferred   = Re_Xferred   + SIZE(InData%Alpha)
+      DO i1 = LBOUND(InData%Alpha,1), UBOUND(InData%Alpha,1)
+        ReKiBuf(Re_Xferred) = InData%Alpha(i1)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
   IF ( .NOT. ALLOCATED(InData%Coefs) ) THEN
     IntKiBuf( Int_Xferred ) = 0
@@ -675,8 +1159,12 @@ ENDIF
     IntKiBuf( Int_Xferred + 1) = UBOUND(InData%Coefs,2)
     Int_Xferred = Int_Xferred + 2
 
-      IF (SIZE(InData%Coefs)>0) ReKiBuf ( Re_Xferred:Re_Xferred+(SIZE(InData%Coefs))-1 ) = PACK(InData%Coefs,.TRUE.)
-      Re_Xferred   = Re_Xferred   + SIZE(InData%Coefs)
+      DO i2 = LBOUND(InData%Coefs,2), UBOUND(InData%Coefs,2)
+        DO i1 = LBOUND(InData%Coefs,1), UBOUND(InData%Coefs,1)
+          ReKiBuf(Re_Xferred) = InData%Coefs(i1,i2)
+          Re_Xferred = Re_Xferred + 1
+        END DO
+      END DO
   END IF
   IF ( .NOT. ALLOCATED(InData%SplineCoefs) ) THEN
     IntKiBuf( Int_Xferred ) = 0
@@ -694,19 +1182,25 @@ ENDIF
     IntKiBuf( Int_Xferred + 1) = UBOUND(InData%SplineCoefs,3)
     Int_Xferred = Int_Xferred + 2
 
-      IF (SIZE(InData%SplineCoefs)>0) ReKiBuf ( Re_Xferred:Re_Xferred+(SIZE(InData%SplineCoefs))-1 ) = PACK(InData%SplineCoefs,.TRUE.)
-      Re_Xferred   = Re_Xferred   + SIZE(InData%SplineCoefs)
+      DO i3 = LBOUND(InData%SplineCoefs,3), UBOUND(InData%SplineCoefs,3)
+        DO i2 = LBOUND(InData%SplineCoefs,2), UBOUND(InData%SplineCoefs,2)
+          DO i1 = LBOUND(InData%SplineCoefs,1), UBOUND(InData%SplineCoefs,1)
+            ReKiBuf(Re_Xferred) = InData%SplineCoefs(i1,i2,i3)
+            Re_Xferred = Re_Xferred + 1
+          END DO
+        END DO
+      END DO
   END IF
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%UserProp
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Re
-      Re_Xferred   = Re_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%NumAlf
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+1-1 ) = TRANSFER( InData%ConstData , IntKiBuf(1), 1)
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+1-1 ) = TRANSFER( InData%InclUAdata , IntKiBuf(1), 1)
-      Int_Xferred   = Int_Xferred   + 1
+    ReKiBuf(Re_Xferred) = InData%UserProp
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Re
+    Re_Xferred = Re_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%NumAlf
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%ConstData, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%InclUAdata, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
       CALL AFI_Packua_bl_type( Re_Buf, Db_Buf, Int_Buf, InData%UA_BL, ErrStat2, ErrMsg2, OnlySize ) ! UA_BL 
         CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
         IF (ErrStat >= AbortErrLev) RETURN
@@ -750,12 +1244,6 @@ ENDIF
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: i1, i1_l, i1_u  !  bounds (upper/lower) for an array dimension 1
   INTEGER(IntKi)                 :: i2, i2_l, i2_u  !  bounds (upper/lower) for an array dimension 2
   INTEGER(IntKi)                 :: i3, i3_l, i3_u  !  bounds (upper/lower) for an array dimension 3
@@ -785,15 +1273,10 @@ ENDIF
        CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%Alpha.', ErrStat, ErrMsg,RoutineName)
        RETURN
     END IF
-    ALLOCATE(mask1(i1_l:i1_u),STAT=ErrStat2)
-    IF (ErrStat2 /= 0) THEN 
-       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask1.', ErrStat, ErrMsg,RoutineName)
-       RETURN
-    END IF
-    mask1 = .TRUE. 
-      IF (SIZE(OutData%Alpha)>0) OutData%Alpha = UNPACK(ReKiBuf( Re_Xferred:Re_Xferred+(SIZE(OutData%Alpha))-1 ), mask1, 0.0_ReKi )
-      Re_Xferred   = Re_Xferred   + SIZE(OutData%Alpha)
-    DEALLOCATE(mask1)
+      DO i1 = LBOUND(OutData%Alpha,1), UBOUND(OutData%Alpha,1)
+        OutData%Alpha(i1) = ReKiBuf(Re_Xferred)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
   IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! Coefs not allocated
     Int_Xferred = Int_Xferred + 1
@@ -811,15 +1294,12 @@ ENDIF
        CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%Coefs.', ErrStat, ErrMsg,RoutineName)
        RETURN
     END IF
-    ALLOCATE(mask2(i1_l:i1_u,i2_l:i2_u),STAT=ErrStat2)
-    IF (ErrStat2 /= 0) THEN 
-       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask2.', ErrStat, ErrMsg,RoutineName)
-       RETURN
-    END IF
-    mask2 = .TRUE. 
-      IF (SIZE(OutData%Coefs)>0) OutData%Coefs = UNPACK(ReKiBuf( Re_Xferred:Re_Xferred+(SIZE(OutData%Coefs))-1 ), mask2, 0.0_ReKi )
-      Re_Xferred   = Re_Xferred   + SIZE(OutData%Coefs)
-    DEALLOCATE(mask2)
+      DO i2 = LBOUND(OutData%Coefs,2), UBOUND(OutData%Coefs,2)
+        DO i1 = LBOUND(OutData%Coefs,1), UBOUND(OutData%Coefs,1)
+          OutData%Coefs(i1,i2) = ReKiBuf(Re_Xferred)
+          Re_Xferred = Re_Xferred + 1
+        END DO
+      END DO
   END IF
   IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! SplineCoefs not allocated
     Int_Xferred = Int_Xferred + 1
@@ -840,26 +1320,25 @@ ENDIF
        CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%SplineCoefs.', ErrStat, ErrMsg,RoutineName)
        RETURN
     END IF
-    ALLOCATE(mask3(i1_l:i1_u,i2_l:i2_u,i3_l:i3_u),STAT=ErrStat2)
-    IF (ErrStat2 /= 0) THEN 
-       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask3.', ErrStat, ErrMsg,RoutineName)
-       RETURN
-    END IF
-    mask3 = .TRUE. 
-      IF (SIZE(OutData%SplineCoefs)>0) OutData%SplineCoefs = UNPACK(ReKiBuf( Re_Xferred:Re_Xferred+(SIZE(OutData%SplineCoefs))-1 ), mask3, 0.0_ReKi )
-      Re_Xferred   = Re_Xferred   + SIZE(OutData%SplineCoefs)
-    DEALLOCATE(mask3)
+      DO i3 = LBOUND(OutData%SplineCoefs,3), UBOUND(OutData%SplineCoefs,3)
+        DO i2 = LBOUND(OutData%SplineCoefs,2), UBOUND(OutData%SplineCoefs,2)
+          DO i1 = LBOUND(OutData%SplineCoefs,1), UBOUND(OutData%SplineCoefs,1)
+            OutData%SplineCoefs(i1,i2,i3) = ReKiBuf(Re_Xferred)
+            Re_Xferred = Re_Xferred + 1
+          END DO
+        END DO
+      END DO
   END IF
-      OutData%UserProp = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Re = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%NumAlf = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%ConstData = TRANSFER( IntKiBuf( Int_Xferred ), mask0 )
-      Int_Xferred   = Int_Xferred + 1
-      OutData%InclUAdata = TRANSFER( IntKiBuf( Int_Xferred ), mask0 )
-      Int_Xferred   = Int_Xferred + 1
+    OutData%UserProp = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Re = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%NumAlf = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%ConstData = TRANSFER(IntKiBuf(Int_Xferred), OutData%ConstData)
+    Int_Xferred = Int_Xferred + 1
+    OutData%InclUAdata = TRANSFER(IntKiBuf(Int_Xferred), OutData%InclUAdata)
+    Int_Xferred = Int_Xferred + 1
       Buf_size=IntKiBuf( Int_Xferred )
       Int_Xferred = Int_Xferred + 1
       IF(Buf_size > 0) THEN
@@ -923,6 +1402,7 @@ ENDIF
     DstInitInputData%InCol_Cd = SrcInitInputData%InCol_Cd
     DstInitInputData%InCol_Cm = SrcInitInputData%InCol_Cm
     DstInitInputData%InCol_Cpmin = SrcInitInputData%InCol_Cpmin
+    DstInitInputData%UA_f_cn = SrcInitInputData%UA_f_cn
  END SUBROUTINE AFI_CopyInitInput
 
  SUBROUTINE AFI_DestroyInitInput( InitInputData, ErrStat, ErrMsg )
@@ -978,6 +1458,7 @@ ENDIF
       Int_BufSz  = Int_BufSz  + 1  ! InCol_Cd
       Int_BufSz  = Int_BufSz  + 1  ! InCol_Cm
       Int_BufSz  = Int_BufSz  + 1  ! InCol_Cpmin
+      Int_BufSz  = Int_BufSz  + 1  ! UA_f_cn
   IF ( Re_BufSz  .GT. 0 ) THEN 
      ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
      IF (ErrStat2 /= 0) THEN 
@@ -1005,22 +1486,24 @@ ENDIF
   Db_Xferred  = 1
   Int_Xferred = 1
 
-        DO I = 1, LEN(InData%FileName)
-          IntKiBuf(Int_Xferred) = ICHAR(InData%FileName(I:I), IntKi)
-          Int_Xferred = Int_Xferred   + 1
-        END DO ! I
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%AFTabMod
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%InCol_Alfa
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%InCol_Cl
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%InCol_Cd
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%InCol_Cm
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%InCol_Cpmin
-      Int_Xferred   = Int_Xferred   + 1
+    DO I = 1, LEN(InData%FileName)
+      IntKiBuf(Int_Xferred) = ICHAR(InData%FileName(I:I), IntKi)
+      Int_Xferred = Int_Xferred + 1
+    END DO ! I
+    IntKiBuf(Int_Xferred) = InData%AFTabMod
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%InCol_Alfa
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%InCol_Cl
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%InCol_Cd
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%InCol_Cm
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%InCol_Cpmin
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = TRANSFER(InData%UA_f_cn, IntKiBuf(1))
+    Int_Xferred = Int_Xferred + 1
  END SUBROUTINE AFI_PackInitInput
 
  SUBROUTINE AFI_UnPackInitInput( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
@@ -1036,12 +1519,6 @@ ENDIF
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: ErrStat2
   CHARACTER(ErrMsgLen)           :: ErrMsg2
   CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_UnPackInitInput'
@@ -1055,22 +1532,24 @@ ENDIF
   Re_Xferred  = 1
   Db_Xferred  = 1
   Int_Xferred  = 1
-      DO I = 1, LEN(OutData%FileName)
-        OutData%FileName(I:I) = CHAR(IntKiBuf(Int_Xferred))
-        Int_Xferred = Int_Xferred   + 1
-      END DO ! I
-      OutData%AFTabMod = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%InCol_Alfa = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%InCol_Cl = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%InCol_Cd = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%InCol_Cm = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%InCol_Cpmin = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
+    DO I = 1, LEN(OutData%FileName)
+      OutData%FileName(I:I) = CHAR(IntKiBuf(Int_Xferred))
+      Int_Xferred = Int_Xferred + 1
+    END DO ! I
+    OutData%AFTabMod = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%InCol_Alfa = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%InCol_Cl = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%InCol_Cd = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%InCol_Cm = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%InCol_Cpmin = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%UA_f_cn = TRANSFER(IntKiBuf(Int_Xferred), OutData%UA_f_cn)
+    Int_Xferred = Int_Xferred + 1
  END SUBROUTINE AFI_UnPackInitInput
 
  SUBROUTINE AFI_CopyInitOutput( SrcInitOutputData, DstInitOutputData, CtrlCode, ErrStat, ErrMsg )
@@ -1227,12 +1706,6 @@ ENDIF
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: ErrStat2
   CHARACTER(ErrMsgLen)           :: ErrMsg2
   CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_UnPackInitOutput'
@@ -1307,6 +1780,7 @@ ENDIF
     DstParamData%ColCl = SrcParamData%ColCl
     DstParamData%ColCm = SrcParamData%ColCm
     DstParamData%ColCpmin = SrcParamData%ColCpmin
+    DstParamData%ColUAf = SrcParamData%ColUAf
     DstParamData%AFTabMod = SrcParamData%AFTabMod
 IF (ALLOCATED(SrcParamData%secondVals)) THEN
   i1_l = LBOUND(SrcParamData%secondVals,1)
@@ -1321,6 +1795,7 @@ IF (ALLOCATED(SrcParamData%secondVals)) THEN
     DstParamData%secondVals = SrcParamData%secondVals
 ENDIF
     DstParamData%InterpOrd = SrcParamData%InterpOrd
+    DstParamData%RelThickness = SrcParamData%RelThickness
     DstParamData%NonDimArea = SrcParamData%NonDimArea
     DstParamData%NumCoords = SrcParamData%NumCoords
 IF (ALLOCATED(SrcParamData%X_Coord)) THEN
@@ -1364,6 +1839,8 @@ IF (ALLOCATED(SrcParamData%Table)) THEN
          IF (ErrStat>=AbortErrLev) RETURN
     ENDDO
 ENDIF
+    DstParamData%BL_file = SrcParamData%BL_file
+    DstParamData%FileName = SrcParamData%FileName
  END SUBROUTINE AFI_CopyParam
 
  SUBROUTINE AFI_DestroyParam( ParamData, ErrStat, ErrMsg )
@@ -1431,6 +1908,7 @@ ENDIF
       Int_BufSz  = Int_BufSz  + 1  ! ColCl
       Int_BufSz  = Int_BufSz  + 1  ! ColCm
       Int_BufSz  = Int_BufSz  + 1  ! ColCpmin
+      Int_BufSz  = Int_BufSz  + 1  ! ColUAf
       Int_BufSz  = Int_BufSz  + 1  ! AFTabMod
   Int_BufSz   = Int_BufSz   + 1     ! secondVals allocated yes/no
   IF ( ALLOCATED(InData%secondVals) ) THEN
@@ -1438,6 +1916,7 @@ ENDIF
       Re_BufSz   = Re_BufSz   + SIZE(InData%secondVals)  ! secondVals
   END IF
       Int_BufSz  = Int_BufSz  + 1  ! InterpOrd
+      Re_BufSz   = Re_BufSz   + 1  ! RelThickness
       Re_BufSz   = Re_BufSz   + 1  ! NonDimArea
       Int_BufSz  = Int_BufSz  + 1  ! NumCoords
   Int_BufSz   = Int_BufSz   + 1     ! X_Coord allocated yes/no
@@ -1475,6 +1954,8 @@ ENDIF
       END IF
     END DO
   END IF
+      Int_BufSz  = Int_BufSz  + 1*LEN(InData%BL_file)  ! BL_file
+      Int_BufSz  = Int_BufSz  + 1*LEN(InData%FileName)  ! FileName
   IF ( Re_BufSz  .GT. 0 ) THEN 
      ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
      IF (ErrStat2 /= 0) THEN 
@@ -1502,16 +1983,18 @@ ENDIF
   Db_Xferred  = 1
   Int_Xferred = 1
 
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%ColCd
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%ColCl
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%ColCm
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%ColCpmin
-      Int_Xferred   = Int_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%AFTabMod
-      Int_Xferred   = Int_Xferred   + 1
+    IntKiBuf(Int_Xferred) = InData%ColCd
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%ColCl
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%ColCm
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%ColCpmin
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%ColUAf
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%AFTabMod
+    Int_Xferred = Int_Xferred + 1
   IF ( .NOT. ALLOCATED(InData%secondVals) ) THEN
     IntKiBuf( Int_Xferred ) = 0
     Int_Xferred = Int_Xferred + 1
@@ -1522,15 +2005,19 @@ ENDIF
     IntKiBuf( Int_Xferred + 1) = UBOUND(InData%secondVals,1)
     Int_Xferred = Int_Xferred + 2
 
-      IF (SIZE(InData%secondVals)>0) ReKiBuf ( Re_Xferred:Re_Xferred+(SIZE(InData%secondVals))-1 ) = PACK(InData%secondVals,.TRUE.)
-      Re_Xferred   = Re_Xferred   + SIZE(InData%secondVals)
+      DO i1 = LBOUND(InData%secondVals,1), UBOUND(InData%secondVals,1)
+        ReKiBuf(Re_Xferred) = InData%secondVals(i1)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%InterpOrd
-      Int_Xferred   = Int_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%NonDimArea
-      Re_Xferred   = Re_Xferred   + 1
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%NumCoords
-      Int_Xferred   = Int_Xferred   + 1
+    IntKiBuf(Int_Xferred) = InData%InterpOrd
+    Int_Xferred = Int_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%RelThickness
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%NonDimArea
+    Re_Xferred = Re_Xferred + 1
+    IntKiBuf(Int_Xferred) = InData%NumCoords
+    Int_Xferred = Int_Xferred + 1
   IF ( .NOT. ALLOCATED(InData%X_Coord) ) THEN
     IntKiBuf( Int_Xferred ) = 0
     Int_Xferred = Int_Xferred + 1
@@ -1541,8 +2028,10 @@ ENDIF
     IntKiBuf( Int_Xferred + 1) = UBOUND(InData%X_Coord,1)
     Int_Xferred = Int_Xferred + 2
 
-      IF (SIZE(InData%X_Coord)>0) ReKiBuf ( Re_Xferred:Re_Xferred+(SIZE(InData%X_Coord))-1 ) = PACK(InData%X_Coord,.TRUE.)
-      Re_Xferred   = Re_Xferred   + SIZE(InData%X_Coord)
+      DO i1 = LBOUND(InData%X_Coord,1), UBOUND(InData%X_Coord,1)
+        ReKiBuf(Re_Xferred) = InData%X_Coord(i1)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
   IF ( .NOT. ALLOCATED(InData%Y_Coord) ) THEN
     IntKiBuf( Int_Xferred ) = 0
@@ -1554,11 +2043,13 @@ ENDIF
     IntKiBuf( Int_Xferred + 1) = UBOUND(InData%Y_Coord,1)
     Int_Xferred = Int_Xferred + 2
 
-      IF (SIZE(InData%Y_Coord)>0) ReKiBuf ( Re_Xferred:Re_Xferred+(SIZE(InData%Y_Coord))-1 ) = PACK(InData%Y_Coord,.TRUE.)
-      Re_Xferred   = Re_Xferred   + SIZE(InData%Y_Coord)
+      DO i1 = LBOUND(InData%Y_Coord,1), UBOUND(InData%Y_Coord,1)
+        ReKiBuf(Re_Xferred) = InData%Y_Coord(i1)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
-      IntKiBuf ( Int_Xferred:Int_Xferred+(1)-1 ) = InData%NumTabs
-      Int_Xferred   = Int_Xferred   + 1
+    IntKiBuf(Int_Xferred) = InData%NumTabs
+    Int_Xferred = Int_Xferred + 1
   IF ( .NOT. ALLOCATED(InData%Table) ) THEN
     IntKiBuf( Int_Xferred ) = 0
     Int_Xferred = Int_Xferred + 1
@@ -1600,6 +2091,14 @@ ENDIF
       ENDIF
     END DO
   END IF
+    DO I = 1, LEN(InData%BL_file)
+      IntKiBuf(Int_Xferred) = ICHAR(InData%BL_file(I:I), IntKi)
+      Int_Xferred = Int_Xferred + 1
+    END DO ! I
+    DO I = 1, LEN(InData%FileName)
+      IntKiBuf(Int_Xferred) = ICHAR(InData%FileName(I:I), IntKi)
+      Int_Xferred = Int_Xferred + 1
+    END DO ! I
  END SUBROUTINE AFI_PackParam
 
  SUBROUTINE AFI_UnPackParam( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
@@ -1615,12 +2114,6 @@ ENDIF
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: i1, i1_l, i1_u  !  bounds (upper/lower) for an array dimension 1
   INTEGER(IntKi)                 :: ErrStat2
   CHARACTER(ErrMsgLen)           :: ErrMsg2
@@ -1635,16 +2128,18 @@ ENDIF
   Re_Xferred  = 1
   Db_Xferred  = 1
   Int_Xferred  = 1
-      OutData%ColCd = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%ColCl = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%ColCm = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%ColCpmin = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%AFTabMod = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
+    OutData%ColCd = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%ColCl = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%ColCm = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%ColCpmin = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%ColUAf = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%AFTabMod = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
   IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! secondVals not allocated
     Int_Xferred = Int_Xferred + 1
   ELSE
@@ -1658,22 +2153,19 @@ ENDIF
        CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%secondVals.', ErrStat, ErrMsg,RoutineName)
        RETURN
     END IF
-    ALLOCATE(mask1(i1_l:i1_u),STAT=ErrStat2)
-    IF (ErrStat2 /= 0) THEN 
-       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask1.', ErrStat, ErrMsg,RoutineName)
-       RETURN
-    END IF
-    mask1 = .TRUE. 
-      IF (SIZE(OutData%secondVals)>0) OutData%secondVals = UNPACK(ReKiBuf( Re_Xferred:Re_Xferred+(SIZE(OutData%secondVals))-1 ), mask1, 0.0_ReKi )
-      Re_Xferred   = Re_Xferred   + SIZE(OutData%secondVals)
-    DEALLOCATE(mask1)
+      DO i1 = LBOUND(OutData%secondVals,1), UBOUND(OutData%secondVals,1)
+        OutData%secondVals(i1) = ReKiBuf(Re_Xferred)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
-      OutData%InterpOrd = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
-      OutData%NonDimArea = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%NumCoords = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
+    OutData%InterpOrd = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
+    OutData%RelThickness = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%NonDimArea = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%NumCoords = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
   IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! X_Coord not allocated
     Int_Xferred = Int_Xferred + 1
   ELSE
@@ -1687,15 +2179,10 @@ ENDIF
        CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%X_Coord.', ErrStat, ErrMsg,RoutineName)
        RETURN
     END IF
-    ALLOCATE(mask1(i1_l:i1_u),STAT=ErrStat2)
-    IF (ErrStat2 /= 0) THEN 
-       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask1.', ErrStat, ErrMsg,RoutineName)
-       RETURN
-    END IF
-    mask1 = .TRUE. 
-      IF (SIZE(OutData%X_Coord)>0) OutData%X_Coord = UNPACK(ReKiBuf( Re_Xferred:Re_Xferred+(SIZE(OutData%X_Coord))-1 ), mask1, 0.0_ReKi )
-      Re_Xferred   = Re_Xferred   + SIZE(OutData%X_Coord)
-    DEALLOCATE(mask1)
+      DO i1 = LBOUND(OutData%X_Coord,1), UBOUND(OutData%X_Coord,1)
+        OutData%X_Coord(i1) = ReKiBuf(Re_Xferred)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
   IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! Y_Coord not allocated
     Int_Xferred = Int_Xferred + 1
@@ -1710,18 +2197,13 @@ ENDIF
        CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%Y_Coord.', ErrStat, ErrMsg,RoutineName)
        RETURN
     END IF
-    ALLOCATE(mask1(i1_l:i1_u),STAT=ErrStat2)
-    IF (ErrStat2 /= 0) THEN 
-       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask1.', ErrStat, ErrMsg,RoutineName)
-       RETURN
-    END IF
-    mask1 = .TRUE. 
-      IF (SIZE(OutData%Y_Coord)>0) OutData%Y_Coord = UNPACK(ReKiBuf( Re_Xferred:Re_Xferred+(SIZE(OutData%Y_Coord))-1 ), mask1, 0.0_ReKi )
-      Re_Xferred   = Re_Xferred   + SIZE(OutData%Y_Coord)
-    DEALLOCATE(mask1)
+      DO i1 = LBOUND(OutData%Y_Coord,1), UBOUND(OutData%Y_Coord,1)
+        OutData%Y_Coord(i1) = ReKiBuf(Re_Xferred)
+        Re_Xferred = Re_Xferred + 1
+      END DO
   END IF
-      OutData%NumTabs = IntKiBuf( Int_Xferred ) 
-      Int_Xferred   = Int_Xferred + 1
+    OutData%NumTabs = IntKiBuf(Int_Xferred)
+    Int_Xferred = Int_Xferred + 1
   IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! Table not allocated
     Int_Xferred = Int_Xferred + 1
   ELSE
@@ -1778,6 +2260,14 @@ ENDIF
       IF(ALLOCATED(Int_Buf)) DEALLOCATE(Int_Buf)
     END DO
   END IF
+    DO I = 1, LEN(OutData%BL_file)
+      OutData%BL_file(I:I) = CHAR(IntKiBuf(Int_Xferred))
+      Int_Xferred = Int_Xferred + 1
+    END DO ! I
+    DO I = 1, LEN(OutData%FileName)
+      OutData%FileName(I:I) = CHAR(IntKiBuf(Int_Xferred))
+      Int_Xferred = Int_Xferred + 1
+    END DO ! I
  END SUBROUTINE AFI_UnPackParam
 
  SUBROUTINE AFI_CopyInput( SrcInputData, DstInputData, CtrlCode, ErrStat, ErrMsg )
@@ -1875,12 +2365,12 @@ ENDIF
   Db_Xferred  = 1
   Int_Xferred = 1
 
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%AoA
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%UserProp
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Re
-      Re_Xferred   = Re_Xferred   + 1
+    ReKiBuf(Re_Xferred) = InData%AoA
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%UserProp
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Re
+    Re_Xferred = Re_Xferred + 1
  END SUBROUTINE AFI_PackInput
 
  SUBROUTINE AFI_UnPackInput( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
@@ -1896,12 +2386,6 @@ ENDIF
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: ErrStat2
   CHARACTER(ErrMsgLen)           :: ErrMsg2
   CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_UnPackInput'
@@ -1915,12 +2399,12 @@ ENDIF
   Re_Xferred  = 1
   Db_Xferred  = 1
   Int_Xferred  = 1
-      OutData%AoA = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%UserProp = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Re = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
+    OutData%AoA = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%UserProp = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Re = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
  END SUBROUTINE AFI_UnPackInput
 
  SUBROUTINE AFI_CopyOutput( SrcOutputData, DstOutputData, CtrlCode, ErrStat, ErrMsg )
@@ -1943,6 +2427,9 @@ ENDIF
     DstOutputData%Cpmin = SrcOutputData%Cpmin
     DstOutputData%Cd0 = SrcOutputData%Cd0
     DstOutputData%Cm0 = SrcOutputData%Cm0
+    DstOutputData%f_st = SrcOutputData%f_st
+    DstOutputData%FullySeparate = SrcOutputData%FullySeparate
+    DstOutputData%FullyAttached = SrcOutputData%FullyAttached
  END SUBROUTINE AFI_CopyOutput
 
  SUBROUTINE AFI_DestroyOutput( OutputData, ErrStat, ErrMsg )
@@ -1997,6 +2484,9 @@ ENDIF
       Re_BufSz   = Re_BufSz   + 1  ! Cpmin
       Re_BufSz   = Re_BufSz   + 1  ! Cd0
       Re_BufSz   = Re_BufSz   + 1  ! Cm0
+      Re_BufSz   = Re_BufSz   + 1  ! f_st
+      Re_BufSz   = Re_BufSz   + 1  ! FullySeparate
+      Re_BufSz   = Re_BufSz   + 1  ! FullyAttached
   IF ( Re_BufSz  .GT. 0 ) THEN 
      ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
      IF (ErrStat2 /= 0) THEN 
@@ -2024,18 +2514,24 @@ ENDIF
   Db_Xferred  = 1
   Int_Xferred = 1
 
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cl
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cd
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cm
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cpmin
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cd0
-      Re_Xferred   = Re_Xferred   + 1
-      ReKiBuf ( Re_Xferred:Re_Xferred+(1)-1 ) = InData%Cm0
-      Re_Xferred   = Re_Xferred   + 1
+    ReKiBuf(Re_Xferred) = InData%Cl
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cd
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cm
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cpmin
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cd0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%Cm0
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%f_st
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%FullySeparate
+    Re_Xferred = Re_Xferred + 1
+    ReKiBuf(Re_Xferred) = InData%FullyAttached
+    Re_Xferred = Re_Xferred + 1
  END SUBROUTINE AFI_PackOutput
 
  SUBROUTINE AFI_UnPackOutput( ReKiBuf, DbKiBuf, IntKiBuf, Outdata, ErrStat, ErrMsg )
@@ -2051,12 +2547,6 @@ ENDIF
   INTEGER(IntKi)                 :: Db_Xferred
   INTEGER(IntKi)                 :: Int_Xferred
   INTEGER(IntKi)                 :: i
-  LOGICAL                        :: mask0
-  LOGICAL, ALLOCATABLE           :: mask1(:)
-  LOGICAL, ALLOCATABLE           :: mask2(:,:)
-  LOGICAL, ALLOCATABLE           :: mask3(:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask4(:,:,:,:)
-  LOGICAL, ALLOCATABLE           :: mask5(:,:,:,:,:)
   INTEGER(IntKi)                 :: ErrStat2
   CHARACTER(ErrMsgLen)           :: ErrMsg2
   CHARACTER(*), PARAMETER        :: RoutineName = 'AFI_UnPackOutput'
@@ -2070,18 +2560,24 @@ ENDIF
   Re_Xferred  = 1
   Db_Xferred  = 1
   Int_Xferred  = 1
-      OutData%Cl = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cd = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cm = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cpmin = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cd0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
-      OutData%Cm0 = ReKiBuf( Re_Xferred )
-      Re_Xferred   = Re_Xferred + 1
+    OutData%Cl = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cd = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cm = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cpmin = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cd0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%Cm0 = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%f_st = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%FullySeparate = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
+    OutData%FullyAttached = ReKiBuf(Re_Xferred)
+    Re_Xferred = Re_Xferred + 1
  END SUBROUTINE AFI_UnPackOutput
 
 
@@ -2159,8 +2655,8 @@ ENDIF
  REAL(ReKi)                                 :: t(2)     ! Times associated with the Outputs
  REAL(ReKi)                                 :: t_out    ! Time to which to be extrap/interpd
  CHARACTER(*),                    PARAMETER :: RoutineName = 'AFI_Output_ExtrapInterp1'
- REAL(DbKi)                                 :: b0       ! temporary for extrapolation/interpolation
- REAL(DbKi)                                 :: c0       ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: b        ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: ScaleFactor ! temporary for extrapolation/interpolation
  INTEGER(IntKi)                             :: ErrStat2 ! local errors
  CHARACTER(ErrMsgLen)                       :: ErrMsg2  ! local errors
     ! Initialize ErrStat
@@ -2175,18 +2671,26 @@ ENDIF
      CALL SetErrStat(ErrID_Fatal, 't(1) must not equal t(2) to avoid a division-by-zero error.', ErrStat, ErrMsg,RoutineName)
      RETURN
    END IF
-  b0 = -(y1%Cl - y2%Cl)/t(2)
-  y_out%Cl = y1%Cl + b0 * t_out
-  b0 = -(y1%Cd - y2%Cd)/t(2)
-  y_out%Cd = y1%Cd + b0 * t_out
-  b0 = -(y1%Cm - y2%Cm)/t(2)
-  y_out%Cm = y1%Cm + b0 * t_out
-  b0 = -(y1%Cpmin - y2%Cpmin)/t(2)
-  y_out%Cpmin = y1%Cpmin + b0 * t_out
-  b0 = -(y1%Cd0 - y2%Cd0)/t(2)
-  y_out%Cd0 = y1%Cd0 + b0 * t_out
-  b0 = -(y1%Cm0 - y2%Cm0)/t(2)
-  y_out%Cm0 = y1%Cm0 + b0 * t_out
+
+   ScaleFactor = t_out / t(2)
+  b = -(y1%Cl - y2%Cl)
+  y_out%Cl = y1%Cl + b * ScaleFactor
+  b = -(y1%Cd - y2%Cd)
+  y_out%Cd = y1%Cd + b * ScaleFactor
+  b = -(y1%Cm - y2%Cm)
+  y_out%Cm = y1%Cm + b * ScaleFactor
+  b = -(y1%Cpmin - y2%Cpmin)
+  y_out%Cpmin = y1%Cpmin + b * ScaleFactor
+  b = -(y1%Cd0 - y2%Cd0)
+  y_out%Cd0 = y1%Cd0 + b * ScaleFactor
+  b = -(y1%Cm0 - y2%Cm0)
+  y_out%Cm0 = y1%Cm0 + b * ScaleFactor
+  b = -(y1%f_st - y2%f_st)
+  y_out%f_st = y1%f_st + b * ScaleFactor
+  b = -(y1%FullySeparate - y2%FullySeparate)
+  y_out%FullySeparate = y1%FullySeparate + b * ScaleFactor
+  b = -(y1%FullyAttached - y2%FullyAttached)
+  y_out%FullyAttached = y1%FullyAttached + b * ScaleFactor
  END SUBROUTINE AFI_Output_ExtrapInterp1
 
 
@@ -2216,8 +2720,9 @@ ENDIF
  REAL(ReKi)                                 :: t(3)      ! Times associated with the Outputs
  REAL(ReKi)                                 :: t_out     ! Time to which to be extrap/interpd
  INTEGER(IntKi)                             :: order     ! order of polynomial fit (max 2)
- REAL(DbKi)                                 :: b0       ! temporary for extrapolation/interpolation
- REAL(DbKi)                                 :: c0       ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: b        ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: c        ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: ScaleFactor ! temporary for extrapolation/interpolation
  INTEGER(IntKi)                             :: ErrStat2 ! local errors
  CHARACTER(ErrMsgLen)                       :: ErrMsg2  ! local errors
  CHARACTER(*),            PARAMETER         :: RoutineName = 'AFI_Output_ExtrapInterp2'
@@ -2239,24 +2744,35 @@ ENDIF
      CALL SetErrStat(ErrID_Fatal, 't(1) must not equal t(3) to avoid a division-by-zero error.', ErrStat, ErrMsg,RoutineName)
      RETURN
    END IF
-  b0 = (t(3)**2*(y1%Cl - y2%Cl) + t(2)**2*(-y1%Cl + y3%Cl))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*y1%Cl + t(3)*y2%Cl - t(2)*y3%Cl ) / (t(2)*t(3)*(t(2) - t(3)))
-  y_out%Cl = y1%Cl + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(y1%Cd - y2%Cd) + t(2)**2*(-y1%Cd + y3%Cd))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*y1%Cd + t(3)*y2%Cd - t(2)*y3%Cd ) / (t(2)*t(3)*(t(2) - t(3)))
-  y_out%Cd = y1%Cd + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(y1%Cm - y2%Cm) + t(2)**2*(-y1%Cm + y3%Cm))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*y1%Cm + t(3)*y2%Cm - t(2)*y3%Cm ) / (t(2)*t(3)*(t(2) - t(3)))
-  y_out%Cm = y1%Cm + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(y1%Cpmin - y2%Cpmin) + t(2)**2*(-y1%Cpmin + y3%Cpmin))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*y1%Cpmin + t(3)*y2%Cpmin - t(2)*y3%Cpmin ) / (t(2)*t(3)*(t(2) - t(3)))
-  y_out%Cpmin = y1%Cpmin + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(y1%Cd0 - y2%Cd0) + t(2)**2*(-y1%Cd0 + y3%Cd0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*y1%Cd0 + t(3)*y2%Cd0 - t(2)*y3%Cd0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  y_out%Cd0 = y1%Cd0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(y1%Cm0 - y2%Cm0) + t(2)**2*(-y1%Cm0 + y3%Cm0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*y1%Cm0 + t(3)*y2%Cm0 - t(2)*y3%Cm0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  y_out%Cm0 = y1%Cm0 + b0 * t_out + c0 * t_out**2
+
+   ScaleFactor = t_out / (t(2) * t(3) * (t(2) - t(3)))
+  b = (t(3)**2*(y1%Cl - y2%Cl) + t(2)**2*(-y1%Cl + y3%Cl))* scaleFactor
+  c = ( (t(2)-t(3))*y1%Cl + t(3)*y2%Cl - t(2)*y3%Cl ) * scaleFactor
+  y_out%Cl = y1%Cl + b  + c * t_out
+  b = (t(3)**2*(y1%Cd - y2%Cd) + t(2)**2*(-y1%Cd + y3%Cd))* scaleFactor
+  c = ( (t(2)-t(3))*y1%Cd + t(3)*y2%Cd - t(2)*y3%Cd ) * scaleFactor
+  y_out%Cd = y1%Cd + b  + c * t_out
+  b = (t(3)**2*(y1%Cm - y2%Cm) + t(2)**2*(-y1%Cm + y3%Cm))* scaleFactor
+  c = ( (t(2)-t(3))*y1%Cm + t(3)*y2%Cm - t(2)*y3%Cm ) * scaleFactor
+  y_out%Cm = y1%Cm + b  + c * t_out
+  b = (t(3)**2*(y1%Cpmin - y2%Cpmin) + t(2)**2*(-y1%Cpmin + y3%Cpmin))* scaleFactor
+  c = ( (t(2)-t(3))*y1%Cpmin + t(3)*y2%Cpmin - t(2)*y3%Cpmin ) * scaleFactor
+  y_out%Cpmin = y1%Cpmin + b  + c * t_out
+  b = (t(3)**2*(y1%Cd0 - y2%Cd0) + t(2)**2*(-y1%Cd0 + y3%Cd0))* scaleFactor
+  c = ( (t(2)-t(3))*y1%Cd0 + t(3)*y2%Cd0 - t(2)*y3%Cd0 ) * scaleFactor
+  y_out%Cd0 = y1%Cd0 + b  + c * t_out
+  b = (t(3)**2*(y1%Cm0 - y2%Cm0) + t(2)**2*(-y1%Cm0 + y3%Cm0))* scaleFactor
+  c = ( (t(2)-t(3))*y1%Cm0 + t(3)*y2%Cm0 - t(2)*y3%Cm0 ) * scaleFactor
+  y_out%Cm0 = y1%Cm0 + b  + c * t_out
+  b = (t(3)**2*(y1%f_st - y2%f_st) + t(2)**2*(-y1%f_st + y3%f_st))* scaleFactor
+  c = ( (t(2)-t(3))*y1%f_st + t(3)*y2%f_st - t(2)*y3%f_st ) * scaleFactor
+  y_out%f_st = y1%f_st + b  + c * t_out
+  b = (t(3)**2*(y1%FullySeparate - y2%FullySeparate) + t(2)**2*(-y1%FullySeparate + y3%FullySeparate))* scaleFactor
+  c = ( (t(2)-t(3))*y1%FullySeparate + t(3)*y2%FullySeparate - t(2)*y3%FullySeparate ) * scaleFactor
+  y_out%FullySeparate = y1%FullySeparate + b  + c * t_out
+  b = (t(3)**2*(y1%FullyAttached - y2%FullyAttached) + t(2)**2*(-y1%FullyAttached + y3%FullyAttached))* scaleFactor
+  c = ( (t(2)-t(3))*y1%FullyAttached + t(3)*y2%FullyAttached - t(2)*y3%FullyAttached ) * scaleFactor
+  y_out%FullyAttached = y1%FullyAttached + b  + c * t_out
  END SUBROUTINE AFI_Output_ExtrapInterp2
 
 
@@ -2334,8 +2850,8 @@ ENDIF
  REAL(ReKi)                                 :: t(2)     ! Times associated with the UA_BL_Types
  REAL(ReKi)                                 :: t_out    ! Time to which to be extrap/interpd
  CHARACTER(*),                    PARAMETER :: RoutineName = 'AFI_UA_BL_Type_ExtrapInterp1'
- REAL(DbKi)                                 :: b0       ! temporary for extrapolation/interpolation
- REAL(DbKi)                                 :: c0       ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: b        ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: ScaleFactor ! temporary for extrapolation/interpolation
  INTEGER(IntKi)                             :: ErrStat2 ! local errors
  CHARACTER(ErrMsgLen)                       :: ErrMsg2  ! local errors
     ! Initialize ErrStat
@@ -2350,70 +2866,95 @@ ENDIF
      CALL SetErrStat(ErrID_Fatal, 't(1) must not equal t(2) to avoid a division-by-zero error.', ErrStat, ErrMsg,RoutineName)
      RETURN
    END IF
-  b0 = -(u1%alpha0 - u2%alpha0)/t(2)
-  u_out%alpha0 = u1%alpha0 + b0 * t_out
-  b0 = -(u1%alpha1 - u2%alpha1)/t(2)
-  u_out%alpha1 = u1%alpha1 + b0 * t_out
-  b0 = -(u1%alpha2 - u2%alpha2)/t(2)
-  u_out%alpha2 = u1%alpha2 + b0 * t_out
-  b0 = -(u1%eta_e - u2%eta_e)/t(2)
-  u_out%eta_e = u1%eta_e + b0 * t_out
-  b0 = -(u1%C_nalpha - u2%C_nalpha)/t(2)
-  u_out%C_nalpha = u1%C_nalpha + b0 * t_out
-  b0 = -(u1%T_f0 - u2%T_f0)/t(2)
-  u_out%T_f0 = u1%T_f0 + b0 * t_out
-  b0 = -(u1%T_V0 - u2%T_V0)/t(2)
-  u_out%T_V0 = u1%T_V0 + b0 * t_out
-  b0 = -(u1%T_p - u2%T_p)/t(2)
-  u_out%T_p = u1%T_p + b0 * t_out
-  b0 = -(u1%T_VL - u2%T_VL)/t(2)
-  u_out%T_VL = u1%T_VL + b0 * t_out
-  b0 = -(u1%b1 - u2%b1)/t(2)
-  u_out%b1 = u1%b1 + b0 * t_out
-  b0 = -(u1%b2 - u2%b2)/t(2)
-  u_out%b2 = u1%b2 + b0 * t_out
-  b0 = -(u1%b5 - u2%b5)/t(2)
-  u_out%b5 = u1%b5 + b0 * t_out
-  b0 = -(u1%A1 - u2%A1)/t(2)
-  u_out%A1 = u1%A1 + b0 * t_out
-  b0 = -(u1%A2 - u2%A2)/t(2)
-  u_out%A2 = u1%A2 + b0 * t_out
-  b0 = -(u1%A5 - u2%A5)/t(2)
-  u_out%A5 = u1%A5 + b0 * t_out
-  b0 = -(u1%S1 - u2%S1)/t(2)
-  u_out%S1 = u1%S1 + b0 * t_out
-  b0 = -(u1%S2 - u2%S2)/t(2)
-  u_out%S2 = u1%S2 + b0 * t_out
-  b0 = -(u1%S3 - u2%S3)/t(2)
-  u_out%S3 = u1%S3 + b0 * t_out
-  b0 = -(u1%S4 - u2%S4)/t(2)
-  u_out%S4 = u1%S4 + b0 * t_out
-  b0 = -(u1%Cn1 - u2%Cn1)/t(2)
-  u_out%Cn1 = u1%Cn1 + b0 * t_out
-  b0 = -(u1%Cn2 - u2%Cn2)/t(2)
-  u_out%Cn2 = u1%Cn2 + b0 * t_out
-  b0 = -(u1%St_sh - u2%St_sh)/t(2)
-  u_out%St_sh = u1%St_sh + b0 * t_out
-  b0 = -(u1%Cd0 - u2%Cd0)/t(2)
-  u_out%Cd0 = u1%Cd0 + b0 * t_out
-  b0 = -(u1%Cm0 - u2%Cm0)/t(2)
-  u_out%Cm0 = u1%Cm0 + b0 * t_out
-  b0 = -(u1%k0 - u2%k0)/t(2)
-  u_out%k0 = u1%k0 + b0 * t_out
-  b0 = -(u1%k1 - u2%k1)/t(2)
-  u_out%k1 = u1%k1 + b0 * t_out
-  b0 = -(u1%k2 - u2%k2)/t(2)
-  u_out%k2 = u1%k2 + b0 * t_out
-  b0 = -(u1%k3 - u2%k3)/t(2)
-  u_out%k3 = u1%k3 + b0 * t_out
-  b0 = -(u1%k1_hat - u2%k1_hat)/t(2)
-  u_out%k1_hat = u1%k1_hat + b0 * t_out
-  b0 = -(u1%x_cp_bar - u2%x_cp_bar)/t(2)
-  u_out%x_cp_bar = u1%x_cp_bar + b0 * t_out
-  b0 = -(u1%UACutout - u2%UACutout)/t(2)
-  u_out%UACutout = u1%UACutout + b0 * t_out
-  b0 = -(u1%filtCutOff - u2%filtCutOff)/t(2)
-  u_out%filtCutOff = u1%filtCutOff + b0 * t_out
+
+   ScaleFactor = t_out / t(2)
+  CALL Angles_ExtrapInterp( u1%alpha0, u2%alpha0, tin, u_out%alpha0, tin_out )
+  CALL Angles_ExtrapInterp( u1%alpha1, u2%alpha1, tin, u_out%alpha1, tin_out )
+  CALL Angles_ExtrapInterp( u1%alpha2, u2%alpha2, tin, u_out%alpha2, tin_out )
+  b = -(u1%eta_e - u2%eta_e)
+  u_out%eta_e = u1%eta_e + b * ScaleFactor
+  b = -(u1%C_nalpha - u2%C_nalpha)
+  u_out%C_nalpha = u1%C_nalpha + b * ScaleFactor
+  b = -(u1%C_lalpha - u2%C_lalpha)
+  u_out%C_lalpha = u1%C_lalpha + b * ScaleFactor
+  b = -(u1%T_f0 - u2%T_f0)
+  u_out%T_f0 = u1%T_f0 + b * ScaleFactor
+  b = -(u1%T_V0 - u2%T_V0)
+  u_out%T_V0 = u1%T_V0 + b * ScaleFactor
+  b = -(u1%T_p - u2%T_p)
+  u_out%T_p = u1%T_p + b * ScaleFactor
+  b = -(u1%T_VL - u2%T_VL)
+  u_out%T_VL = u1%T_VL + b * ScaleFactor
+  b = -(u1%b1 - u2%b1)
+  u_out%b1 = u1%b1 + b * ScaleFactor
+  b = -(u1%b2 - u2%b2)
+  u_out%b2 = u1%b2 + b * ScaleFactor
+  b = -(u1%b5 - u2%b5)
+  u_out%b5 = u1%b5 + b * ScaleFactor
+  b = -(u1%A1 - u2%A1)
+  u_out%A1 = u1%A1 + b * ScaleFactor
+  b = -(u1%A2 - u2%A2)
+  u_out%A2 = u1%A2 + b * ScaleFactor
+  b = -(u1%A5 - u2%A5)
+  u_out%A5 = u1%A5 + b * ScaleFactor
+  b = -(u1%S1 - u2%S1)
+  u_out%S1 = u1%S1 + b * ScaleFactor
+  b = -(u1%S2 - u2%S2)
+  u_out%S2 = u1%S2 + b * ScaleFactor
+  b = -(u1%S3 - u2%S3)
+  u_out%S3 = u1%S3 + b * ScaleFactor
+  b = -(u1%S4 - u2%S4)
+  u_out%S4 = u1%S4 + b * ScaleFactor
+  b = -(u1%Cn1 - u2%Cn1)
+  u_out%Cn1 = u1%Cn1 + b * ScaleFactor
+  b = -(u1%Cn2 - u2%Cn2)
+  u_out%Cn2 = u1%Cn2 + b * ScaleFactor
+  b = -(u1%St_sh - u2%St_sh)
+  u_out%St_sh = u1%St_sh + b * ScaleFactor
+  b = -(u1%Cd0 - u2%Cd0)
+  u_out%Cd0 = u1%Cd0 + b * ScaleFactor
+  b = -(u1%Cm0 - u2%Cm0)
+  u_out%Cm0 = u1%Cm0 + b * ScaleFactor
+  b = -(u1%k0 - u2%k0)
+  u_out%k0 = u1%k0 + b * ScaleFactor
+  b = -(u1%k1 - u2%k1)
+  u_out%k1 = u1%k1 + b * ScaleFactor
+  b = -(u1%k2 - u2%k2)
+  u_out%k2 = u1%k2 + b * ScaleFactor
+  b = -(u1%k3 - u2%k3)
+  u_out%k3 = u1%k3 + b * ScaleFactor
+  b = -(u1%k1_hat - u2%k1_hat)
+  u_out%k1_hat = u1%k1_hat + b * ScaleFactor
+  b = -(u1%x_cp_bar - u2%x_cp_bar)
+  u_out%x_cp_bar = u1%x_cp_bar + b * ScaleFactor
+  b = -(u1%UACutout - u2%UACutout)
+  u_out%UACutout = u1%UACutout + b * ScaleFactor
+  b = -(u1%UACutout_delta - u2%UACutout_delta)
+  u_out%UACutout_delta = u1%UACutout_delta + b * ScaleFactor
+  b = -(u1%UACutout_blend - u2%UACutout_blend)
+  u_out%UACutout_blend = u1%UACutout_blend + b * ScaleFactor
+  b = -(u1%filtCutOff - u2%filtCutOff)
+  u_out%filtCutOff = u1%filtCutOff + b * ScaleFactor
+  CALL Angles_ExtrapInterp( u1%alphaUpper, u2%alphaUpper, tin, u_out%alphaUpper, tin_out )
+  CALL Angles_ExtrapInterp( u1%alphaLower, u2%alphaLower, tin, u_out%alphaLower, tin_out )
+  b = -(u1%c_Rate - u2%c_Rate)
+  u_out%c_Rate = u1%c_Rate + b * ScaleFactor
+  b = -(u1%c_RateUpper - u2%c_RateUpper)
+  u_out%c_RateUpper = u1%c_RateUpper + b * ScaleFactor
+  b = -(u1%c_RateLower - u2%c_RateLower)
+  u_out%c_RateLower = u1%c_RateLower + b * ScaleFactor
+  b = -(u1%c_alphaLower - u2%c_alphaLower)
+  u_out%c_alphaLower = u1%c_alphaLower + b * ScaleFactor
+  b = -(u1%c_alphaUpper - u2%c_alphaUpper)
+  u_out%c_alphaUpper = u1%c_alphaUpper + b * ScaleFactor
+  CALL Angles_ExtrapInterp( u1%alphaUpperWrap, u2%alphaUpperWrap, tin, u_out%alphaUpperWrap, tin_out )
+  CALL Angles_ExtrapInterp( u1%alphaLowerWrap, u2%alphaLowerWrap, tin, u_out%alphaLowerWrap, tin_out )
+  b = -(u1%c_RateWrap - u2%c_RateWrap)
+  u_out%c_RateWrap = u1%c_RateWrap + b * ScaleFactor
+  b = -(u1%c_alphaLowerWrap - u2%c_alphaLowerWrap)
+  u_out%c_alphaLowerWrap = u1%c_alphaLowerWrap + b * ScaleFactor
+  b = -(u1%c_alphaUpperWrap - u2%c_alphaUpperWrap)
+  u_out%c_alphaUpperWrap = u1%c_alphaUpperWrap + b * ScaleFactor
  END SUBROUTINE AFI_UA_BL_Type_ExtrapInterp1
 
 
@@ -2443,8 +2984,9 @@ ENDIF
  REAL(ReKi)                                 :: t(3)      ! Times associated with the UA_BL_Types
  REAL(ReKi)                                 :: t_out     ! Time to which to be extrap/interpd
  INTEGER(IntKi)                             :: order     ! order of polynomial fit (max 2)
- REAL(DbKi)                                 :: b0       ! temporary for extrapolation/interpolation
- REAL(DbKi)                                 :: c0       ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: b        ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: c        ! temporary for extrapolation/interpolation
+ REAL(DbKi)                                 :: ScaleFactor ! temporary for extrapolation/interpolation
  INTEGER(IntKi)                             :: ErrStat2 ! local errors
  CHARACTER(ErrMsgLen)                       :: ErrMsg2  ! local errors
  CHARACTER(*),            PARAMETER         :: RoutineName = 'AFI_UA_BL_Type_ExtrapInterp2'
@@ -2466,102 +3008,135 @@ ENDIF
      CALL SetErrStat(ErrID_Fatal, 't(1) must not equal t(3) to avoid a division-by-zero error.', ErrStat, ErrMsg,RoutineName)
      RETURN
    END IF
-  b0 = (t(3)**2*(u1%alpha0 - u2%alpha0) + t(2)**2*(-u1%alpha0 + u3%alpha0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%alpha0 + t(3)*u2%alpha0 - t(2)*u3%alpha0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%alpha0 = u1%alpha0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%alpha1 - u2%alpha1) + t(2)**2*(-u1%alpha1 + u3%alpha1))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%alpha1 + t(3)*u2%alpha1 - t(2)*u3%alpha1 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%alpha1 = u1%alpha1 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%alpha2 - u2%alpha2) + t(2)**2*(-u1%alpha2 + u3%alpha2))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%alpha2 + t(3)*u2%alpha2 - t(2)*u3%alpha2 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%alpha2 = u1%alpha2 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%eta_e - u2%eta_e) + t(2)**2*(-u1%eta_e + u3%eta_e))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%eta_e + t(3)*u2%eta_e - t(2)*u3%eta_e ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%eta_e = u1%eta_e + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%C_nalpha - u2%C_nalpha) + t(2)**2*(-u1%C_nalpha + u3%C_nalpha))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%C_nalpha + t(3)*u2%C_nalpha - t(2)*u3%C_nalpha ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%C_nalpha = u1%C_nalpha + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%T_f0 - u2%T_f0) + t(2)**2*(-u1%T_f0 + u3%T_f0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%T_f0 + t(3)*u2%T_f0 - t(2)*u3%T_f0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%T_f0 = u1%T_f0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%T_V0 - u2%T_V0) + t(2)**2*(-u1%T_V0 + u3%T_V0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%T_V0 + t(3)*u2%T_V0 - t(2)*u3%T_V0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%T_V0 = u1%T_V0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%T_p - u2%T_p) + t(2)**2*(-u1%T_p + u3%T_p))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%T_p + t(3)*u2%T_p - t(2)*u3%T_p ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%T_p = u1%T_p + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%T_VL - u2%T_VL) + t(2)**2*(-u1%T_VL + u3%T_VL))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%T_VL + t(3)*u2%T_VL - t(2)*u3%T_VL ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%T_VL = u1%T_VL + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%b1 - u2%b1) + t(2)**2*(-u1%b1 + u3%b1))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%b1 + t(3)*u2%b1 - t(2)*u3%b1 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%b1 = u1%b1 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%b2 - u2%b2) + t(2)**2*(-u1%b2 + u3%b2))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%b2 + t(3)*u2%b2 - t(2)*u3%b2 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%b2 = u1%b2 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%b5 - u2%b5) + t(2)**2*(-u1%b5 + u3%b5))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%b5 + t(3)*u2%b5 - t(2)*u3%b5 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%b5 = u1%b5 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%A1 - u2%A1) + t(2)**2*(-u1%A1 + u3%A1))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%A1 + t(3)*u2%A1 - t(2)*u3%A1 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%A1 = u1%A1 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%A2 - u2%A2) + t(2)**2*(-u1%A2 + u3%A2))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%A2 + t(3)*u2%A2 - t(2)*u3%A2 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%A2 = u1%A2 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%A5 - u2%A5) + t(2)**2*(-u1%A5 + u3%A5))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%A5 + t(3)*u2%A5 - t(2)*u3%A5 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%A5 = u1%A5 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%S1 - u2%S1) + t(2)**2*(-u1%S1 + u3%S1))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%S1 + t(3)*u2%S1 - t(2)*u3%S1 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%S1 = u1%S1 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%S2 - u2%S2) + t(2)**2*(-u1%S2 + u3%S2))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%S2 + t(3)*u2%S2 - t(2)*u3%S2 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%S2 = u1%S2 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%S3 - u2%S3) + t(2)**2*(-u1%S3 + u3%S3))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%S3 + t(3)*u2%S3 - t(2)*u3%S3 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%S3 = u1%S3 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%S4 - u2%S4) + t(2)**2*(-u1%S4 + u3%S4))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%S4 + t(3)*u2%S4 - t(2)*u3%S4 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%S4 = u1%S4 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%Cn1 - u2%Cn1) + t(2)**2*(-u1%Cn1 + u3%Cn1))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%Cn1 + t(3)*u2%Cn1 - t(2)*u3%Cn1 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%Cn1 = u1%Cn1 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%Cn2 - u2%Cn2) + t(2)**2*(-u1%Cn2 + u3%Cn2))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%Cn2 + t(3)*u2%Cn2 - t(2)*u3%Cn2 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%Cn2 = u1%Cn2 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%St_sh - u2%St_sh) + t(2)**2*(-u1%St_sh + u3%St_sh))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%St_sh + t(3)*u2%St_sh - t(2)*u3%St_sh ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%St_sh = u1%St_sh + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%Cd0 - u2%Cd0) + t(2)**2*(-u1%Cd0 + u3%Cd0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%Cd0 + t(3)*u2%Cd0 - t(2)*u3%Cd0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%Cd0 = u1%Cd0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%Cm0 - u2%Cm0) + t(2)**2*(-u1%Cm0 + u3%Cm0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%Cm0 + t(3)*u2%Cm0 - t(2)*u3%Cm0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%Cm0 = u1%Cm0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%k0 - u2%k0) + t(2)**2*(-u1%k0 + u3%k0))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%k0 + t(3)*u2%k0 - t(2)*u3%k0 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%k0 = u1%k0 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%k1 - u2%k1) + t(2)**2*(-u1%k1 + u3%k1))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%k1 + t(3)*u2%k1 - t(2)*u3%k1 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%k1 = u1%k1 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%k2 - u2%k2) + t(2)**2*(-u1%k2 + u3%k2))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%k2 + t(3)*u2%k2 - t(2)*u3%k2 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%k2 = u1%k2 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%k3 - u2%k3) + t(2)**2*(-u1%k3 + u3%k3))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%k3 + t(3)*u2%k3 - t(2)*u3%k3 ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%k3 = u1%k3 + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%k1_hat - u2%k1_hat) + t(2)**2*(-u1%k1_hat + u3%k1_hat))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%k1_hat + t(3)*u2%k1_hat - t(2)*u3%k1_hat ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%k1_hat = u1%k1_hat + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%x_cp_bar - u2%x_cp_bar) + t(2)**2*(-u1%x_cp_bar + u3%x_cp_bar))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%x_cp_bar + t(3)*u2%x_cp_bar - t(2)*u3%x_cp_bar ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%x_cp_bar = u1%x_cp_bar + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%UACutout - u2%UACutout) + t(2)**2*(-u1%UACutout + u3%UACutout))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%UACutout + t(3)*u2%UACutout - t(2)*u3%UACutout ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%UACutout = u1%UACutout + b0 * t_out + c0 * t_out**2
-  b0 = (t(3)**2*(u1%filtCutOff - u2%filtCutOff) + t(2)**2*(-u1%filtCutOff + u3%filtCutOff))/(t(2)*t(3)*(t(2) - t(3)))
-  c0 = ( (t(2)-t(3))*u1%filtCutOff + t(3)*u2%filtCutOff - t(2)*u3%filtCutOff ) / (t(2)*t(3)*(t(2) - t(3)))
-  u_out%filtCutOff = u1%filtCutOff + b0 * t_out + c0 * t_out**2
+
+   ScaleFactor = t_out / (t(2) * t(3) * (t(2) - t(3)))
+  CALL Angles_ExtrapInterp( u1%alpha0, u2%alpha0, u3%alpha0, tin, u_out%alpha0, tin_out )
+  CALL Angles_ExtrapInterp( u1%alpha1, u2%alpha1, u3%alpha1, tin, u_out%alpha1, tin_out )
+  CALL Angles_ExtrapInterp( u1%alpha2, u2%alpha2, u3%alpha2, tin, u_out%alpha2, tin_out )
+  b = (t(3)**2*(u1%eta_e - u2%eta_e) + t(2)**2*(-u1%eta_e + u3%eta_e))* scaleFactor
+  c = ( (t(2)-t(3))*u1%eta_e + t(3)*u2%eta_e - t(2)*u3%eta_e ) * scaleFactor
+  u_out%eta_e = u1%eta_e + b  + c * t_out
+  b = (t(3)**2*(u1%C_nalpha - u2%C_nalpha) + t(2)**2*(-u1%C_nalpha + u3%C_nalpha))* scaleFactor
+  c = ( (t(2)-t(3))*u1%C_nalpha + t(3)*u2%C_nalpha - t(2)*u3%C_nalpha ) * scaleFactor
+  u_out%C_nalpha = u1%C_nalpha + b  + c * t_out
+  b = (t(3)**2*(u1%C_lalpha - u2%C_lalpha) + t(2)**2*(-u1%C_lalpha + u3%C_lalpha))* scaleFactor
+  c = ( (t(2)-t(3))*u1%C_lalpha + t(3)*u2%C_lalpha - t(2)*u3%C_lalpha ) * scaleFactor
+  u_out%C_lalpha = u1%C_lalpha + b  + c * t_out
+  b = (t(3)**2*(u1%T_f0 - u2%T_f0) + t(2)**2*(-u1%T_f0 + u3%T_f0))* scaleFactor
+  c = ( (t(2)-t(3))*u1%T_f0 + t(3)*u2%T_f0 - t(2)*u3%T_f0 ) * scaleFactor
+  u_out%T_f0 = u1%T_f0 + b  + c * t_out
+  b = (t(3)**2*(u1%T_V0 - u2%T_V0) + t(2)**2*(-u1%T_V0 + u3%T_V0))* scaleFactor
+  c = ( (t(2)-t(3))*u1%T_V0 + t(3)*u2%T_V0 - t(2)*u3%T_V0 ) * scaleFactor
+  u_out%T_V0 = u1%T_V0 + b  + c * t_out
+  b = (t(3)**2*(u1%T_p - u2%T_p) + t(2)**2*(-u1%T_p + u3%T_p))* scaleFactor
+  c = ( (t(2)-t(3))*u1%T_p + t(3)*u2%T_p - t(2)*u3%T_p ) * scaleFactor
+  u_out%T_p = u1%T_p + b  + c * t_out
+  b = (t(3)**2*(u1%T_VL - u2%T_VL) + t(2)**2*(-u1%T_VL + u3%T_VL))* scaleFactor
+  c = ( (t(2)-t(3))*u1%T_VL + t(3)*u2%T_VL - t(2)*u3%T_VL ) * scaleFactor
+  u_out%T_VL = u1%T_VL + b  + c * t_out
+  b = (t(3)**2*(u1%b1 - u2%b1) + t(2)**2*(-u1%b1 + u3%b1))* scaleFactor
+  c = ( (t(2)-t(3))*u1%b1 + t(3)*u2%b1 - t(2)*u3%b1 ) * scaleFactor
+  u_out%b1 = u1%b1 + b  + c * t_out
+  b = (t(3)**2*(u1%b2 - u2%b2) + t(2)**2*(-u1%b2 + u3%b2))* scaleFactor
+  c = ( (t(2)-t(3))*u1%b2 + t(3)*u2%b2 - t(2)*u3%b2 ) * scaleFactor
+  u_out%b2 = u1%b2 + b  + c * t_out
+  b = (t(3)**2*(u1%b5 - u2%b5) + t(2)**2*(-u1%b5 + u3%b5))* scaleFactor
+  c = ( (t(2)-t(3))*u1%b5 + t(3)*u2%b5 - t(2)*u3%b5 ) * scaleFactor
+  u_out%b5 = u1%b5 + b  + c * t_out
+  b = (t(3)**2*(u1%A1 - u2%A1) + t(2)**2*(-u1%A1 + u3%A1))* scaleFactor
+  c = ( (t(2)-t(3))*u1%A1 + t(3)*u2%A1 - t(2)*u3%A1 ) * scaleFactor
+  u_out%A1 = u1%A1 + b  + c * t_out
+  b = (t(3)**2*(u1%A2 - u2%A2) + t(2)**2*(-u1%A2 + u3%A2))* scaleFactor
+  c = ( (t(2)-t(3))*u1%A2 + t(3)*u2%A2 - t(2)*u3%A2 ) * scaleFactor
+  u_out%A2 = u1%A2 + b  + c * t_out
+  b = (t(3)**2*(u1%A5 - u2%A5) + t(2)**2*(-u1%A5 + u3%A5))* scaleFactor
+  c = ( (t(2)-t(3))*u1%A5 + t(3)*u2%A5 - t(2)*u3%A5 ) * scaleFactor
+  u_out%A5 = u1%A5 + b  + c * t_out
+  b = (t(3)**2*(u1%S1 - u2%S1) + t(2)**2*(-u1%S1 + u3%S1))* scaleFactor
+  c = ( (t(2)-t(3))*u1%S1 + t(3)*u2%S1 - t(2)*u3%S1 ) * scaleFactor
+  u_out%S1 = u1%S1 + b  + c * t_out
+  b = (t(3)**2*(u1%S2 - u2%S2) + t(2)**2*(-u1%S2 + u3%S2))* scaleFactor
+  c = ( (t(2)-t(3))*u1%S2 + t(3)*u2%S2 - t(2)*u3%S2 ) * scaleFactor
+  u_out%S2 = u1%S2 + b  + c * t_out
+  b = (t(3)**2*(u1%S3 - u2%S3) + t(2)**2*(-u1%S3 + u3%S3))* scaleFactor
+  c = ( (t(2)-t(3))*u1%S3 + t(3)*u2%S3 - t(2)*u3%S3 ) * scaleFactor
+  u_out%S3 = u1%S3 + b  + c * t_out
+  b = (t(3)**2*(u1%S4 - u2%S4) + t(2)**2*(-u1%S4 + u3%S4))* scaleFactor
+  c = ( (t(2)-t(3))*u1%S4 + t(3)*u2%S4 - t(2)*u3%S4 ) * scaleFactor
+  u_out%S4 = u1%S4 + b  + c * t_out
+  b = (t(3)**2*(u1%Cn1 - u2%Cn1) + t(2)**2*(-u1%Cn1 + u3%Cn1))* scaleFactor
+  c = ( (t(2)-t(3))*u1%Cn1 + t(3)*u2%Cn1 - t(2)*u3%Cn1 ) * scaleFactor
+  u_out%Cn1 = u1%Cn1 + b  + c * t_out
+  b = (t(3)**2*(u1%Cn2 - u2%Cn2) + t(2)**2*(-u1%Cn2 + u3%Cn2))* scaleFactor
+  c = ( (t(2)-t(3))*u1%Cn2 + t(3)*u2%Cn2 - t(2)*u3%Cn2 ) * scaleFactor
+  u_out%Cn2 = u1%Cn2 + b  + c * t_out
+  b = (t(3)**2*(u1%St_sh - u2%St_sh) + t(2)**2*(-u1%St_sh + u3%St_sh))* scaleFactor
+  c = ( (t(2)-t(3))*u1%St_sh + t(3)*u2%St_sh - t(2)*u3%St_sh ) * scaleFactor
+  u_out%St_sh = u1%St_sh + b  + c * t_out
+  b = (t(3)**2*(u1%Cd0 - u2%Cd0) + t(2)**2*(-u1%Cd0 + u3%Cd0))* scaleFactor
+  c = ( (t(2)-t(3))*u1%Cd0 + t(3)*u2%Cd0 - t(2)*u3%Cd0 ) * scaleFactor
+  u_out%Cd0 = u1%Cd0 + b  + c * t_out
+  b = (t(3)**2*(u1%Cm0 - u2%Cm0) + t(2)**2*(-u1%Cm0 + u3%Cm0))* scaleFactor
+  c = ( (t(2)-t(3))*u1%Cm0 + t(3)*u2%Cm0 - t(2)*u3%Cm0 ) * scaleFactor
+  u_out%Cm0 = u1%Cm0 + b  + c * t_out
+  b = (t(3)**2*(u1%k0 - u2%k0) + t(2)**2*(-u1%k0 + u3%k0))* scaleFactor
+  c = ( (t(2)-t(3))*u1%k0 + t(3)*u2%k0 - t(2)*u3%k0 ) * scaleFactor
+  u_out%k0 = u1%k0 + b  + c * t_out
+  b = (t(3)**2*(u1%k1 - u2%k1) + t(2)**2*(-u1%k1 + u3%k1))* scaleFactor
+  c = ( (t(2)-t(3))*u1%k1 + t(3)*u2%k1 - t(2)*u3%k1 ) * scaleFactor
+  u_out%k1 = u1%k1 + b  + c * t_out
+  b = (t(3)**2*(u1%k2 - u2%k2) + t(2)**2*(-u1%k2 + u3%k2))* scaleFactor
+  c = ( (t(2)-t(3))*u1%k2 + t(3)*u2%k2 - t(2)*u3%k2 ) * scaleFactor
+  u_out%k2 = u1%k2 + b  + c * t_out
+  b = (t(3)**2*(u1%k3 - u2%k3) + t(2)**2*(-u1%k3 + u3%k3))* scaleFactor
+  c = ( (t(2)-t(3))*u1%k3 + t(3)*u2%k3 - t(2)*u3%k3 ) * scaleFactor
+  u_out%k3 = u1%k3 + b  + c * t_out
+  b = (t(3)**2*(u1%k1_hat - u2%k1_hat) + t(2)**2*(-u1%k1_hat + u3%k1_hat))* scaleFactor
+  c = ( (t(2)-t(3))*u1%k1_hat + t(3)*u2%k1_hat - t(2)*u3%k1_hat ) * scaleFactor
+  u_out%k1_hat = u1%k1_hat + b  + c * t_out
+  b = (t(3)**2*(u1%x_cp_bar - u2%x_cp_bar) + t(2)**2*(-u1%x_cp_bar + u3%x_cp_bar))* scaleFactor
+  c = ( (t(2)-t(3))*u1%x_cp_bar + t(3)*u2%x_cp_bar - t(2)*u3%x_cp_bar ) * scaleFactor
+  u_out%x_cp_bar = u1%x_cp_bar + b  + c * t_out
+  b = (t(3)**2*(u1%UACutout - u2%UACutout) + t(2)**2*(-u1%UACutout + u3%UACutout))* scaleFactor
+  c = ( (t(2)-t(3))*u1%UACutout + t(3)*u2%UACutout - t(2)*u3%UACutout ) * scaleFactor
+  u_out%UACutout = u1%UACutout + b  + c * t_out
+  b = (t(3)**2*(u1%UACutout_delta - u2%UACutout_delta) + t(2)**2*(-u1%UACutout_delta + u3%UACutout_delta))* scaleFactor
+  c = ( (t(2)-t(3))*u1%UACutout_delta + t(3)*u2%UACutout_delta - t(2)*u3%UACutout_delta ) * scaleFactor
+  u_out%UACutout_delta = u1%UACutout_delta + b  + c * t_out
+  b = (t(3)**2*(u1%UACutout_blend - u2%UACutout_blend) + t(2)**2*(-u1%UACutout_blend + u3%UACutout_blend))* scaleFactor
+  c = ( (t(2)-t(3))*u1%UACutout_blend + t(3)*u2%UACutout_blend - t(2)*u3%UACutout_blend ) * scaleFactor
+  u_out%UACutout_blend = u1%UACutout_blend + b  + c * t_out
+  b = (t(3)**2*(u1%filtCutOff - u2%filtCutOff) + t(2)**2*(-u1%filtCutOff + u3%filtCutOff))* scaleFactor
+  c = ( (t(2)-t(3))*u1%filtCutOff + t(3)*u2%filtCutOff - t(2)*u3%filtCutOff ) * scaleFactor
+  u_out%filtCutOff = u1%filtCutOff + b  + c * t_out
+  CALL Angles_ExtrapInterp( u1%alphaUpper, u2%alphaUpper, u3%alphaUpper, tin, u_out%alphaUpper, tin_out )
+  CALL Angles_ExtrapInterp( u1%alphaLower, u2%alphaLower, u3%alphaLower, tin, u_out%alphaLower, tin_out )
+  b = (t(3)**2*(u1%c_Rate - u2%c_Rate) + t(2)**2*(-u1%c_Rate + u3%c_Rate))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_Rate + t(3)*u2%c_Rate - t(2)*u3%c_Rate ) * scaleFactor
+  u_out%c_Rate = u1%c_Rate + b  + c * t_out
+  b = (t(3)**2*(u1%c_RateUpper - u2%c_RateUpper) + t(2)**2*(-u1%c_RateUpper + u3%c_RateUpper))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_RateUpper + t(3)*u2%c_RateUpper - t(2)*u3%c_RateUpper ) * scaleFactor
+  u_out%c_RateUpper = u1%c_RateUpper + b  + c * t_out
+  b = (t(3)**2*(u1%c_RateLower - u2%c_RateLower) + t(2)**2*(-u1%c_RateLower + u3%c_RateLower))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_RateLower + t(3)*u2%c_RateLower - t(2)*u3%c_RateLower ) * scaleFactor
+  u_out%c_RateLower = u1%c_RateLower + b  + c * t_out
+  b = (t(3)**2*(u1%c_alphaLower - u2%c_alphaLower) + t(2)**2*(-u1%c_alphaLower + u3%c_alphaLower))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_alphaLower + t(3)*u2%c_alphaLower - t(2)*u3%c_alphaLower ) * scaleFactor
+  u_out%c_alphaLower = u1%c_alphaLower + b  + c * t_out
+  b = (t(3)**2*(u1%c_alphaUpper - u2%c_alphaUpper) + t(2)**2*(-u1%c_alphaUpper + u3%c_alphaUpper))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_alphaUpper + t(3)*u2%c_alphaUpper - t(2)*u3%c_alphaUpper ) * scaleFactor
+  u_out%c_alphaUpper = u1%c_alphaUpper + b  + c * t_out
+  CALL Angles_ExtrapInterp( u1%alphaUpperWrap, u2%alphaUpperWrap, u3%alphaUpperWrap, tin, u_out%alphaUpperWrap, tin_out )
+  CALL Angles_ExtrapInterp( u1%alphaLowerWrap, u2%alphaLowerWrap, u3%alphaLowerWrap, tin, u_out%alphaLowerWrap, tin_out )
+  b = (t(3)**2*(u1%c_RateWrap - u2%c_RateWrap) + t(2)**2*(-u1%c_RateWrap + u3%c_RateWrap))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_RateWrap + t(3)*u2%c_RateWrap - t(2)*u3%c_RateWrap ) * scaleFactor
+  u_out%c_RateWrap = u1%c_RateWrap + b  + c * t_out
+  b = (t(3)**2*(u1%c_alphaLowerWrap - u2%c_alphaLowerWrap) + t(2)**2*(-u1%c_alphaLowerWrap + u3%c_alphaLowerWrap))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_alphaLowerWrap + t(3)*u2%c_alphaLowerWrap - t(2)*u3%c_alphaLowerWrap ) * scaleFactor
+  u_out%c_alphaLowerWrap = u1%c_alphaLowerWrap + b  + c * t_out
+  b = (t(3)**2*(u1%c_alphaUpperWrap - u2%c_alphaUpperWrap) + t(2)**2*(-u1%c_alphaUpperWrap + u3%c_alphaUpperWrap))* scaleFactor
+  c = ( (t(2)-t(3))*u1%c_alphaUpperWrap + t(3)*u2%c_alphaUpperWrap - t(2)*u3%c_alphaUpperWrap ) * scaleFactor
+  u_out%c_alphaUpperWrap = u1%c_alphaUpperWrap + b  + c * t_out
  END SUBROUTINE AFI_UA_BL_Type_ExtrapInterp2
 
 END MODULE AirfoilInfo_Types

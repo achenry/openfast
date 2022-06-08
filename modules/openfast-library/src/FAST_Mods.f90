@@ -32,6 +32,8 @@ MODULE FAST_ModTypes
    INTEGER(IntKi), PARAMETER :: Type_LandBased          = 1
    INTEGER(IntKi), PARAMETER :: Type_Offshore_Fixed     = 2
    INTEGER(IntKi), PARAMETER :: Type_Offshore_Floating  = 3
+   INTEGER(IntKi), PARAMETER :: Type_MHK_Fixed          = 4
+   INTEGER(IntKi), PARAMETER :: Type_MHK_Floating       = 5
    
    ! state array indexes
    INTEGER(IntKi), PARAMETER :: STATE_CURR              = 1          !< index for "current" (t_global) states
@@ -42,6 +44,7 @@ MODULE FAST_ModTypes
    INTEGER(IntKi), PARAMETER :: VTK_None                =  0         !< none (no VTK output)
    INTEGER(IntKi), PARAMETER :: VTK_InitOnly            =  1         !< VTK output only at initialization
    INTEGER(IntKi), PARAMETER :: VTK_Animate             =  2         !< VTK animation output
+   INTEGER(IntKi), PARAMETER :: VTK_ModeShapes          =  3         !< VTK output after linearization analysis
       
    INTEGER(IntKi), PARAMETER :: VTK_Surf                =  1         !< output surfaces
    INTEGER(IntKi), PARAMETER :: VTK_Basic               =  2         !< output minimal number of point/line meshes

@@ -1,7 +1,7 @@
 %% INSTRUCTIONS
 % Before running this script, you must have compiled OpenFAST for Simulink to create a DLL (i.e., a shared library like .so, .dylib, .lib, etc.).
 % - If cmake was used, make sure the install directory is specified properly in the `installDir` variable below,
-%   and set `built_with_visualStudio` to false (necessary on Windows only).
+%   and if using Windows, set `built_with_visualStudio` to false.
 % - If the Visual Studio Solution file contained in the vs-build directory was used to create the DLL on Windows,
 %   make sure `built_with_visualStudio` is set to true.
 % - The name of the library that was generated must match the `libname` variable below
@@ -39,13 +39,16 @@ if (ispc && built_with_visualStudio)
 else    
 %% defaults for cmake builds:
 
-    if ( ispc ) % Windows PC
+    if ( ismac )  % Apple MacOS
+        installDir = '../../../install';
+        outDir = fullfile(installDir, 'lib');
+    elseif ( ispc ) % Windows PC
         installDir = '../../../install';
         outDir = fullfile(installDir, 'lib');
         % If there are shared libraries does it work for outDir to be the local directory?
     else
-        installDir = '/usr/local';
-        outDir = '.';
+        installDir = '../../../install';
+        outDir = fullfile(installDir, 'lib');
     end
 
     libDir = fullfile(installDir, 'lib');
@@ -58,13 +61,13 @@ fprintf( '\n----------------------------\n' );
 fprintf( 'Creating %s\n\n', [outDir filesep mexname '.' mexext] );
 
 mex('-largeArrayDims', ...
+    ... % '-v', ... %add this line for "verbose" output (for debugging)
     ['-L' libDir], ...
     ['-l' libName], ...
     ['-I' includeDir], ...
     '-I../../../modules/supercontroller/src', ... % needed for visual studio builds to find "SuperController_Types.h"
     '-I../../../modules/openfoam/src',        ... % needed for visual studio builds to find "OpenFOAM_Types.h"
     '-outdir', outDir, ...
-    'COMPFLAGS=$COMPFLAGS -MT -D', ...
-    ['S_FUNCTION_NAME=' mexname], ...
+    ['COMPFLAGS=$COMPFLAGS -MT -DS_FUNCTION_NAME=' mexname], ...
     '-output', mexname, ...
     'FAST_SFunc.c');

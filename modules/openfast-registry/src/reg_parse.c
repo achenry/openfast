@@ -95,7 +95,7 @@ pre_parse( char * dir, FILE * infile, FILE * outfile, int usefrom_sw )
        // See if it might be in the current directory
         sprintf( include_file_name , "%s", p ) ;            // first name in line from registry file, without the include or usefrom
         for ( p2 = include_file_name ; !( *p2 == ' ' || *p2 == '\t' || *p2 == '\n' ) && *p2 != '\0' ; p2++ ) {} 
-        *p2 = '\0' ; // drop tailing white space
+        *p2 = '\0' ;     // drop tailing white space
         if ( (q=index(include_file_name,'\n')) != NULL ) *q = '\0' ;
         if (( include_fp = fopen( include_file_name , "r" )) != NULL )   { foundit = 1 ; goto gotit ; }
 
@@ -148,7 +148,7 @@ gotit:
           fprintf(stderr,"opening %s %s\n",include_file_name,
                                            (checking_for_usefrom || usefrom_sw)?"in usefrom mode":"" ) ;
           parseline[0] = '\0' ;
-          pre_parse( dir , include_fp , outfile, ( checking_for_usefrom || usefrom_sw ) ) ;
+          pre_parse( dir , include_fp , outfile, ( checking_for_usefrom + usefrom_sw ) ) ;
           parseline[0] = '\0' ;
 //          fprintf(stderr,"closing %s %s\n",include_file_name,
 //                                           (checking_for_usefrom || usefrom_sw)?"in usefrom mode":"" ) ;
@@ -245,7 +245,7 @@ gotit:
        strcpy(tmp, parseline_save);
        x = strpbrk(tmp, " \t"); // find the first space or tab
        if (usefrom_sw && x) {
-          sprintf(parseline_save, "usefrom %s", x);
+          sprintf(parseline_save, "usefrom%i %s", usefrom_sw, x);
        }
     }
 
@@ -269,7 +269,7 @@ gotit:
 
 
 
-normal:
+//normal:
     /* otherwise output the line as is */
     fprintf(outfile,"%s\n",parseline_save) ;
     parseline[0] = '\0' ;  /* reset parseline */
@@ -284,8 +284,8 @@ reg_parse( FILE * infile )
   /* Had to increase size for SOA from 4096 to 7000, Manish Shrivastava 2010 */
   char inln[INLN_SIZE], parseline[PARSELINE_SIZE] ;
   char *p ;
-  char *tokens[MAXTOKENS], *ditto[MAXTOKENS] ;
-  int i ;
+  char *tokens[MAXTOKENS],*ditto[MAXTOKENS] ;
+  int i  ;
   int defining_state_field, defining_rconfig_field, defining_i1_field ;
 
   parseline[0] = '\0' ;
@@ -343,9 +343,10 @@ reg_parse( FILE * infile )
     defining_i1_field = 0 ;
 
 /* typedef, usefrom, and param entries */
+//         || !strcmp(tokens[TABLE], "usefrom")
     if (  !strcmp( tokens[ TABLE ] , "typedef" )
-       || !strcmp( tokens[ TABLE ] , "usefrom" )
-       || !strcmp( tokens[ TABLE ] , "param"   ) )
+        || !strncmp(tokens[TABLE], "usefrom", 7) 
+        || !strcmp( tokens[ TABLE ] , "param"   ) )
     {
       node_t * param_struct ;
       node_t * field_struct ;
@@ -374,9 +375,20 @@ reg_parse( FILE * infile )
         modname_struct->next            = NULL ;
         add_node_to_end( modname_struct , &ModNames ) ;
       }
-      if ( !strcmp( tokens[ TABLE ] , "usefrom" ) )
+      if (!strcmp(tokens[TABLE], "usefrom"))
       {
-        modname_struct->usefrom = 1 ;
+          modname_struct->usefrom = 1;
+      } else if(!strncmp(tokens[TABLE], "usefrom", 7))
+      {
+          tokens[TABLE] += 7;
+          if (!strcmp(tokens[TABLE], "1"))
+          {
+              modname_struct->usefrom = 1;
+          }
+          else
+          {
+              modname_struct->usefrom = 2;
+          }
       }
 
       if ( !strcmp( tokens[ TABLE ] , "param" ) ) {
@@ -449,7 +461,6 @@ reg_parse( FILE * infile )
         strcpy(field_struct->units,"-") ;
         if ( strcmp( tokens[FIELD_UNITS], "-" ) ) /* that is, if not equal "-" */
           { strcpy( field_struct->units , tokens[FIELD_UNITS] ) ; }
-
 #ifdef OVERSTRICT
         if ( field_struct->type != NULL )
           if ( field_struct->type->type_type == DERIVED && field_struct->ndims > 0 )
@@ -615,27 +626,19 @@ set_dim_len ( char * dimspec , node_t * dim_entry )
 
 int
 set_ctrl( char *ctrl , node_t * field_struct )
-// process CTRL keys -- only 'h' (hidden) and 'e' (exposed).  Default is not to generate a wrapper,
-// so something must be specified, either h or e
+// process CTRL keys -- only '2pi' (interpolation of values with 2pi period).  Default is no special interpolation.
 {
-  char prev = '\0' ;
-  char x ;
   char tmp[NAMELEN] ;
   char *p ;
-  int i ;
   strcpy(tmp,ctrl) ;
   if (( p = index(tmp,'=') ) != NULL ) { *p = '\0' ; }
-  for ( i = 0 ; i < strlen(tmp) ; i++ )
-  {
-    x = tolower(tmp[i]) ;
-    if        ( x == 'h' ) {
-      field_struct->gen_wrapper = WRAP_HIDDEN_FIELD ;
-    } else if ( x == 'e' ) {
-      field_struct->gen_wrapper = WRAP_EXPOSED_FIELD ;
-    } else {
-      field_struct->gen_wrapper = WRAP_NONE ;  /* default */
-    }
+  if (!strcmp(make_lower_temp(tmp), "2pi")) {
+      field_struct->gen_periodic = PERIOD_2PI;
   }
+  else {
+     field_struct->gen_periodic = PERIOD_NONE;
+  }
+
   return(0) ;
 }
 
