@@ -15,7 +15,7 @@
 
 mexname = 'FAST_SFunc'; % base name of the resulting mex file
 
-built_with_visualStudio = true; %if the libraries were built with cmake, set to false
+built_with_visualStudio = false; %if the libraries were built with cmake, set to false
 
 
 if (ispc && built_with_visualStudio)   

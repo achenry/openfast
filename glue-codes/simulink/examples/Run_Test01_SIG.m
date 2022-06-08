@@ -3,7 +3,7 @@
 % are needed are on the MATLAB path)
 %    (relative path names are not recommended in addpath()):
 % addpath('../../../build/bin'); % install location for Windows Visual Studio builds
-% addpath(genpath('../../../install')); % cmake default install location
+addpath(genpath('../../../install')); % cmake default install location
 
 
 % Simple Induction Generator Example ======================================
